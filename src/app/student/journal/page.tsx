@@ -24,9 +24,10 @@ export default function StudentJournalPage() {
   useEffect(() => {
     if (!student) { setLoading(false); return; }
     setLoading(true);
-    fetch(`/api/journal/entries?studentId=${encodeURIComponent(student.id)}`)
+    fetch(`/api/journal/entries?studentId=${encodeURIComponent(student.id)}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => setRows(d.entries || []))
+      .catch((err) => console.error("student journal load failed", err))
       .finally(() => setLoading(false));
   }, [student]);
 

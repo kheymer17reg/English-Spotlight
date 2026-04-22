@@ -58,7 +58,7 @@ export default function TeacherBoardPage() {
   const [saving, setSaving] = useState(false);
 
   const refreshNotes = useCallback(async () => {
-    const r = await fetch("/api/board/notes");
+    const r = await fetch("/api/board/notes", { cache: "no-store" });
     const d = await r.json();
     setNotes(d.notes || []);
   }, []);

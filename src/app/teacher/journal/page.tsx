@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { CalendarPlus, Download, Loader2, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,19 +32,24 @@ export default function TeacherJournalPage() {
   const [creating, setCreating] = useState(false);
   const [newTopic, setNewTopic] = useState("");
   const [newDate, setNewDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [popover, setPopover] = useState<{ lessonId: string; studentId: string } | null>(null);
+  const [popover, setPopover] = useState<{ lessonId: string; studentId: string; rect: { top: number; left: number; width: number } } | null>(null);
   const [popComment, setPopComment] = useState("");
 
   const reload = useCallback(async () => {
     setLoading(true);
-    const [profRes, entriesRes] = await Promise.all([
-      fetch(`/api/profile?grade=${grade}`).then((r) => r.json()),
-      fetch(`/api/journal/entries?grade=${grade}`).then((r) => r.json()),
-    ]);
-    setStudents(profRes.students || []);
-    setLessons(entriesRes.lessons || []);
-    setEntries(entriesRes.entries || []);
-    setLoading(false);
+    try {
+      const [profRes, entriesRes] = await Promise.all([
+        fetch(`/api/profile?grade=${grade}`, { cache: "no-store" }).then((r) => r.json()),
+        fetch(`/api/journal/entries?grade=${grade}`, { cache: "no-store" }).then((r) => r.json()),
+      ]);
+      setStudents(profRes.students || []);
+      setLessons(entriesRes.lessons || []);
+      setEntries(entriesRes.entries || []);
+    } catch (err) {
+      console.error("journal reload failed", err);
+    } finally {
+      setLoading(false);
+    }
   }, [grade]);
 
   useEffect(() => {
@@ -249,8 +255,13 @@ export default function TeacherJournalPage() {
                             <td key={l.id} className="relative px-2 py-1 text-center">
                               <button
                                 className="group relative inline-flex h-9 w-16 items-center justify-center rounded-md border border-dashed border-border bg-background hover:border-primary/60"
-                                onClick={() => {
-                                  setPopover({ lessonId: l.id, studentId: s.id });
+                                onClick={(ev) => {
+                                  const r = (ev.currentTarget as HTMLElement).getBoundingClientRect();
+                                  setPopover({
+                                    lessonId: l.id,
+                                    studentId: s.id,
+                                    rect: { top: r.bottom + 8, left: r.left + r.width / 2, width: r.width },
+                                  });
                                   setPopComment(e?.comment ?? "");
                                 }}
                               >
@@ -259,9 +270,10 @@ export default function TeacherJournalPage() {
                                   <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-accent" />
                                 ) : null}
                               </button>
-                              {open ? (
+                              {open && popover ? (
                                 <CellPopover
                                   cell={cell}
+                                  rect={popover.rect}
                                   commentDraft={popComment}
                                   onCommentChange={setPopComment}
                                   onSave={async (patch) => {
@@ -323,26 +335,32 @@ function MarkDisplay({ entry }: { entry?: JournalEntry }) {
 
 function CellPopover({
   cell,
+  rect,
   commentDraft,
   onCommentChange,
   onSave,
   onClose,
 }: {
   cell: Cell;
+  rect: { top: number; left: number; width: number };
   commentDraft: string;
   onCommentChange: (v: string) => void;
   onSave: (patch: Partial<JournalEntry>) => Promise<void>;
   onClose: () => void;
 }) {
   const current = cell.entry;
-  return (
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <>
       <button
-        className="fixed inset-0 z-30 bg-transparent"
+        className="fixed inset-0 z-[70] bg-transparent"
         aria-label="Закрыть"
         onClick={onClose}
       />
-      <div className="absolute left-1/2 top-full z-40 mt-2 w-64 -translate-x-1/2 rounded-xl border border-border bg-surface p-3 text-left shadow-xl">
+      <div
+        style={{ position: "fixed", top: rect.top, left: rect.left, transform: "translateX(-50%)" }}
+        className="z-[80] w-64 rounded-xl border border-border bg-surface p-3 text-left shadow-xl"
+      >
         <div className="mb-2 text-xs text-muted-foreground">
           {cell.student.name} · {cell.lesson.date}
         </div>
@@ -415,7 +433,8 @@ function CellPopover({
           </Button>
         </div>
       </div>
-    </>
+    </>,
+    document.body,
   );
 }
 
