@@ -298,7 +298,7 @@ export default function TeacherBoardPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
+      <div className="grid gap-4 lg:grid-cols-[1fr_260px]">
         <Card className="lg:order-2">
           <CardContent className="p-3">
             <div className="flex flex-wrap gap-1.5">
