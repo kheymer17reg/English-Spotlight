@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BookOpen,
+  BookOpenCheck,
   Flame,
   GraduationCap,
   Home,
@@ -18,12 +19,13 @@ import { Brand } from "@/components/layout/brand";
 import { Badge } from "@/components/ui/badge";
 import { useStore } from "@/lib/store";
 
-const items = [
+const items: { href: string; label: string; icon: typeof Home; end?: boolean; badge?: string }[] = [
   { href: "/student", label: "Главная", icon: Home, end: true },
   { href: "/student/chat", label: "Lumos AI", icon: Sparkles, badge: "AI" },
   { href: "/student/practice", label: "Тренировка", icon: GraduationCap },
   { href: "/student/vocabulary", label: "Словарь", icon: BookOpen },
   { href: "/student/reading", label: "Чтение", icon: MessageCircle },
+  { href: "/student/journal", label: "Мой журнал", icon: BookOpenCheck, badge: "NEW" },
   { href: "/student/challenges", label: "Задания дня", icon: Flame },
   { href: "/student/progress", label: "Прогресс", icon: LineChart },
   { href: "/student/profile", label: "Профиль", icon: UserRound },

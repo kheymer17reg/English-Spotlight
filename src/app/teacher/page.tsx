@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, BarChart3, ClipboardCheck, FileText, Sparkles, Users, Wand2 } from "lucide-react";
+import { ArrowRight, BarChart3, BookOpenCheck, ClipboardCheck, FileText, Palette, Sparkles, Users, Wand2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,6 +51,22 @@ export default function TeacherHome() {
           desc="Упражнения по модулю, типу и сложности. Экспорт DOCX/TXT."
           icon={Wand2}
           tone="primary"
+        />
+        <ToolCard
+          href="/teacher/journal"
+          title="Журнал"
+          desc="Оценки 2-5, посещаемость, комментарии. Экспорт CSV."
+          icon={BookOpenCheck}
+          tone="success"
+          badge="NEW"
+        />
+        <ToolCard
+          href="/teacher/board"
+          title="Онлайн-доска"
+          desc="Ручка, фигуры, стикеры. Сохранение и PNG-экспорт."
+          icon={Palette}
+          tone="accent"
+          badge="NEW"
         />
         <ToolCard
           href="/teacher/tests"
@@ -105,12 +121,14 @@ function ToolCard({
   desc,
   icon: Icon,
   tone,
+  badge,
 }: {
   href: string;
   title: string;
   desc: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   tone: "primary" | "accent" | "success" | "warning";
+  badge?: string;
 }) {
   const toneCls = {
     primary: "bg-primary/10 text-primary",
@@ -122,8 +140,11 @@ function ToolCard({
     <Link href={href} className="group">
       <Card className="h-full transition-all group-hover:-translate-y-0.5 group-hover:shadow-lifted">
         <CardContent className="p-5">
-          <div className={`mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg ${toneCls}`}>
-            <Icon className="h-4 w-4" />
+          <div className="mb-3 flex items-center justify-between">
+            <div className={`inline-flex h-9 w-9 items-center justify-center rounded-lg ${toneCls}`}>
+              <Icon className="h-4 w-4" />
+            </div>
+            {badge ? <Badge variant="accent" className="text-[10px] uppercase tracking-wider">{badge}</Badge> : null}
           </div>
           <div className="flex items-center justify-between gap-2">
             <div>

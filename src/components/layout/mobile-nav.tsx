@@ -2,15 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Flame, GraduationCap, Home, Sparkles } from "lucide-react";
+import { BookOpenCheck, GraduationCap, Home, LineChart, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
   { href: "/student", icon: Home, label: "Главная" },
   { href: "/student/chat", icon: Sparkles, label: "Lumos" },
   { href: "/student/practice", icon: GraduationCap, label: "Тренировка" },
-  { href: "/student/vocabulary", icon: BookOpen, label: "Словарь" },
-  { href: "/student/challenges", icon: Flame, label: "Задания" },
+  { href: "/student/journal", icon: BookOpenCheck, label: "Журнал" },
+  { href: "/student/progress", icon: LineChart, label: "Прогресс" },
 ];
 
 export function MobileTabBar() {

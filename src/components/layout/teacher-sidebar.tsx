@@ -4,9 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  BookOpenCheck,
   ClipboardCheck,
   FileText,
   Home,
+  Palette,
   Sparkles,
   Users,
   Wand2,
@@ -15,9 +17,11 @@ import { cn } from "@/lib/utils";
 import { Brand } from "@/components/layout/brand";
 import { Badge } from "@/components/ui/badge";
 
-const items = [
+const items: { href: string; label: string; icon: typeof Home; end?: boolean; badge?: string }[] = [
   { href: "/teacher", label: "Главная", icon: Home, end: true },
   { href: "/teacher/generate", label: "Генератор", icon: Wand2, badge: "AI" },
+  { href: "/teacher/journal", label: "Журнал", icon: BookOpenCheck, badge: "NEW" },
+  { href: "/teacher/board", label: "Доска", icon: Palette, badge: "NEW" },
   { href: "/teacher/tests", label: "Тесты", icon: ClipboardCheck },
   { href: "/teacher/lessons", label: "Планы уроков", icon: FileText },
   { href: "/teacher/students", label: "Ученики", icon: Users },

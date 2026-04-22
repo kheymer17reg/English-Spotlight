@@ -43,6 +43,35 @@ export function getDb() {
     );
     CREATE INDEX IF NOT EXISTS idx_attempts_student ON attempts(studentId);
     CREATE INDEX IF NOT EXISTS idx_attempts_skill ON attempts(skill);
+    CREATE TABLE IF NOT EXISTS journal_lessons (
+      id TEXT PRIMARY KEY,
+      grade INTEGER NOT NULL,
+      date TEXT NOT NULL,
+      topic TEXT NOT NULL,
+      module INTEGER NOT NULL DEFAULT 1,
+      createdAt TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_lessons_grade_date ON journal_lessons(grade, date);
+    CREATE TABLE IF NOT EXISTS journal_entries (
+      id TEXT PRIMARY KEY,
+      lessonId TEXT NOT NULL,
+      studentId TEXT NOT NULL,
+      mark TEXT,
+      attendance TEXT NOT NULL DEFAULT 'present',
+      comment TEXT,
+      updatedAt TEXT NOT NULL,
+      UNIQUE(lessonId, studentId)
+    );
+    CREATE INDEX IF NOT EXISTS idx_entries_student ON journal_entries(studentId);
+    CREATE INDEX IF NOT EXISTS idx_entries_lesson ON journal_entries(lessonId);
+    CREATE TABLE IF NOT EXISTS board_notes (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      data TEXT NOT NULL,
+      thumbnail TEXT,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    );
   `);
   _db = db;
   return db;
@@ -110,6 +139,152 @@ export function globalStats() {
   return { students: students.n, attempts: attempts.n, skillAccuracy: avg };
 }
 
+export type JournalLesson = {
+  id: string;
+  grade: number;
+  date: string;
+  topic: string;
+  module: number;
+  createdAt: string;
+};
+
+export type Attendance = "present" | "absent" | "late" | "excused";
+
+export type JournalEntry = {
+  id: string;
+  lessonId: string;
+  studentId: string;
+  mark: string | null;
+  attendance: Attendance;
+  comment: string | null;
+  updatedAt: string;
+};
+
+export function listLessons(grade: number): JournalLesson[] {
+  const db = getDb();
+  return db
+    .prepare(`SELECT * FROM journal_lessons WHERE grade = ? ORDER BY date ASC`)
+    .all(grade) as JournalLesson[];
+}
+
+export function upsertLesson(lesson: JournalLesson) {
+  const db = getDb();
+  db.prepare(
+    `INSERT INTO journal_lessons (id,grade,date,topic,module,createdAt)
+     VALUES (?,?,?,?,?,?)
+     ON CONFLICT(id) DO UPDATE SET
+       date=excluded.date, topic=excluded.topic, module=excluded.module, grade=excluded.grade`,
+  ).run(lesson.id, lesson.grade, lesson.date, lesson.topic, lesson.module, lesson.createdAt);
+}
+
+export function deleteLesson(id: string) {
+  const db = getDb();
+  db.prepare(`DELETE FROM journal_entries WHERE lessonId = ?`).run(id);
+  db.prepare(`DELETE FROM journal_lessons WHERE id = ?`).run(id);
+}
+
+export function listEntries(lessonIds: string[]): JournalEntry[] {
+  if (!lessonIds.length) return [];
+  const db = getDb();
+  const placeholders = lessonIds.map(() => "?").join(",");
+  return db
+    .prepare(`SELECT * FROM journal_entries WHERE lessonId IN (${placeholders})`)
+    .all(...lessonIds) as JournalEntry[];
+}
+
+export function entriesForStudent(studentId: string): (JournalEntry & { lesson: JournalLesson })[] {
+  const db = getDb();
+  return db
+    .prepare(
+      `SELECT e.*, l.grade AS l_grade, l.date AS l_date, l.topic AS l_topic, l.module AS l_module, l.createdAt AS l_createdAt
+       FROM journal_entries e
+       JOIN journal_lessons l ON l.id = e.lessonId
+       WHERE e.studentId = ?
+       ORDER BY l.date DESC`,
+    )
+    .all(studentId)
+    .map((r) => {
+      const row = r as JournalEntry & {
+        l_grade: number;
+        l_date: string;
+        l_topic: string;
+        l_module: number;
+        l_createdAt: string;
+      };
+      return {
+        id: row.id,
+        lessonId: row.lessonId,
+        studentId: row.studentId,
+        mark: row.mark,
+        attendance: row.attendance,
+        comment: row.comment,
+        updatedAt: row.updatedAt,
+        lesson: {
+          id: row.lessonId,
+          grade: row.l_grade,
+          date: row.l_date,
+          topic: row.l_topic,
+          module: row.l_module,
+          createdAt: row.l_createdAt,
+        },
+      };
+    });
+}
+
+export function upsertEntry(entry: JournalEntry) {
+  const db = getDb();
+  db.prepare(
+    `INSERT INTO journal_entries (id,lessonId,studentId,mark,attendance,comment,updatedAt)
+     VALUES (?,?,?,?,?,?,?)
+     ON CONFLICT(lessonId, studentId) DO UPDATE SET
+       mark=excluded.mark, attendance=excluded.attendance, comment=excluded.comment, updatedAt=excluded.updatedAt`,
+  ).run(
+    entry.id,
+    entry.lessonId,
+    entry.studentId,
+    entry.mark,
+    entry.attendance,
+    entry.comment,
+    entry.updatedAt,
+  );
+}
+
+export type BoardNote = {
+  id: string;
+  title: string;
+  data: string;
+  thumbnail: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function listBoardNotes(): BoardNote[] {
+  const db = getDb();
+  return db
+    .prepare(`SELECT * FROM board_notes ORDER BY updatedAt DESC LIMIT 50`)
+    .all() as BoardNote[];
+}
+
+export function getBoardNote(id: string): BoardNote | undefined {
+  const db = getDb();
+  return db.prepare(`SELECT * FROM board_notes WHERE id = ?`).get(id) as BoardNote | undefined;
+}
+
+export function upsertBoardNote(note: BoardNote) {
+  const db = getDb();
+  db.prepare(
+    `INSERT INTO board_notes (id,title,data,thumbnail,createdAt,updatedAt)
+     VALUES (?,?,?,?,?,?)
+     ON CONFLICT(id) DO UPDATE SET
+       title=excluded.title, data=excluded.data, thumbnail=excluded.thumbnail, updatedAt=excluded.updatedAt`,
+  ).run(note.id, note.title, note.data, note.thumbnail, note.createdAt, note.updatedAt);
+}
+
+export function deleteBoardNote(id: string) {
+  const db = getDb();
+  db.prepare(`DELETE FROM board_notes WHERE id = ?`).run(id);
+}
+
 export function logError(where_at: string, message: string) {
   const db = getDb();
   db.prepare(`INSERT INTO errors_log (when_at,where_at,message) VALUES (?,?,?)`).run(
@@ -156,6 +331,47 @@ export function seedDemoIfEmpty() {
         module: s.currentModule,
         createdAt: new Date(now - i * 86400000).toISOString(),
       });
+    }
+  }
+
+  const topics = [
+    "School Days · Повторение",
+    "Family Ties · Диалоги",
+    "Going Places · Словарь",
+    "Holidays · Грамматика",
+    "Module Test",
+  ];
+  const gradesPresent = Array.from(new Set(demo.map((d) => d.grade)));
+  for (const g of gradesPresent) {
+    const cohort = demo.filter((d) => d.grade === g);
+    const lessonIds: string[] = [];
+    for (let i = 0; i < 5; i++) {
+      const lid = `seed-lesson-g${g}-${i}`;
+      lessonIds.push(lid);
+      upsertLesson({
+        id: lid,
+        grade: g,
+        date: new Date(now - (5 - i) * 86400000).toISOString().slice(0, 10),
+        topic: topics[i],
+        module: cohort[0]?.currentModule ?? 1,
+        createdAt: new Date(now - (5 - i) * 86400000).toISOString(),
+      });
+    }
+    for (const s of cohort) {
+      for (let i = 0; i < lessonIds.length; i++) {
+        const r = ((s.id.charCodeAt(5) * 17 + i * 7) % 10) / 10;
+        const attendance: Attendance = r < 0.82 ? "present" : r < 0.9 ? "late" : r < 0.95 ? "excused" : "absent";
+        const mark = attendance === "absent" ? null : ["3", "4", "5", "5", "4"][Math.floor(r * 5)] ?? "4";
+        upsertEntry({
+          id: `seed-entry-${s.id}-${i}`,
+          lessonId: lessonIds[i],
+          studentId: s.id,
+          mark,
+          attendance,
+          comment: i === 2 && s.id === "demo-anya" ? "Активная работа у доски" : null,
+          updatedAt: new Date(now - (5 - i) * 86400000).toISOString(),
+        });
+      }
     }
   }
 }
