@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { Brand } from "@/components/layout/brand";
 import { Badge } from "@/components/ui/badge";
 import { useStore } from "@/lib/store";
+import { UserMenu } from "@/components/auth/user-menu";
 
 const items: { href: string; label: string; icon: typeof Home; end?: boolean; badge?: string }[] = [
   { href: "/student", label: "Главная", icon: Home, end: true },
@@ -35,6 +36,7 @@ const items: { href: string; label: string; icon: typeof Home; end?: boolean; ba
   { href: "/student/roleplay", label: "Ролевик (голос)", icon: Mic, badge: "NEW" },
   { href: "/student/journal", label: "Мой журнал", icon: BookOpenCheck, badge: "NEW" },
   { href: "/student/homework", label: "Мои задания", icon: ClipboardList, badge: "NEW" },
+  { href: "/student/classes", label: "Мои классы", icon: GraduationCap, badge: "NEW" },
   { href: "/student/games", label: "Игровой зал", icon: Gamepad2, badge: "NEW" },
   { href: "/student/challenges", label: "Задания дня", icon: Flame },
   { href: "/student/progress", label: "Прогресс", icon: LineChart },
@@ -77,7 +79,7 @@ export function StudentSidebar() {
           );
         })}
       </nav>
-      <div className="border-t border-border p-4">
+      <div className="space-y-3 border-t border-border p-4">
         {student ? (
           <Link
             href="/student/profile"
@@ -94,11 +96,8 @@ export function StudentSidebar() {
               </div>
             </div>
           </Link>
-        ) : (
-          <Link href="/" className="block rounded-lg border border-dashed border-border p-3 text-center text-xs text-muted-foreground hover:bg-muted">
-            Войти как ученик
-          </Link>
-        )}
+        ) : null}
+        <UserMenu />
       </div>
     </aside>
   );

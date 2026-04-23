@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+import { auth } from "@/auth";
+import { AuthSessionProvider } from "@/components/auth/session-provider";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"], display: "swap", variable: "--font-sans" });
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], display: "swap", variable: "--font-display" });
@@ -21,7 +23,8 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const session = await auth();
   return (
     <html lang="ru" suppressHydrationWarning className={`${inter.variable} ${jakarta.variable}`}>
       <head>
@@ -37,7 +40,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body className="min-h-dvh bg-background text-foreground antialiased">{children}</body>
+      <body className="min-h-dvh bg-background text-foreground antialiased">
+        <AuthSessionProvider session={session}>{children}</AuthSessionProvider>
+      </body>
     </html>
   );
 }

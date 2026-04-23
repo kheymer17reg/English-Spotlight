@@ -106,6 +106,39 @@ export function getDb() {
     );
     CREATE INDEX IF NOT EXISTS idx_pron_student ON pronunciation_attempts(studentId);
     CREATE INDEX IF NOT EXISTS idx_pron_grade ON pronunciation_attempts(grade);
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT UNIQUE,
+      emailVerified TEXT,
+      passwordHash TEXT,
+      name TEXT,
+      image TEXT,
+      role TEXT NOT NULL DEFAULT 'student',
+      grade INTEGER,
+      studentId TEXT,
+      provider TEXT,
+      providerAccountId TEXT,
+      createdAt TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+    CREATE INDEX IF NOT EXISTS idx_users_provider ON users(provider, providerAccountId);
+    CREATE TABLE IF NOT EXISTS groups (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      grade INTEGER NOT NULL,
+      teacherId TEXT NOT NULL,
+      joinCode TEXT UNIQUE NOT NULL,
+      createdAt TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_groups_teacher ON groups(teacherId);
+    CREATE TABLE IF NOT EXISTS group_members (
+      groupId TEXT NOT NULL,
+      userId TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'student',
+      joinedAt TEXT NOT NULL,
+      PRIMARY KEY (groupId, userId)
+    );
+    CREATE INDEX IF NOT EXISTS idx_members_user ON group_members(userId);
   `);
   // Lightweight migrations — add engine/azure columns if an older DB predates them.
   const pronCols = db
@@ -118,8 +151,207 @@ export function getDb() {
   if (!pronColNames.has("azure")) {
     db.exec(`ALTER TABLE pronunciation_attempts ADD COLUMN azure TEXT`);
   }
+  const hwCols = db.prepare(`PRAGMA table_info(homework)`).all() as { name: string }[];
+  const hwColNames = new Set(hwCols.map((c) => c.name));
+  if (!hwColNames.has("groupId")) {
+    db.exec(`ALTER TABLE homework ADD COLUMN groupId TEXT`);
+  }
   _db = db;
   return db;
+}
+
+// ───────────────── Users / Auth ─────────────────
+export type UserRecord = {
+  id: string;
+  email: string | null;
+  emailVerified: string | null;
+  passwordHash: string | null;
+  name: string | null;
+  image: string | null;
+  role: "teacher" | "student";
+  grade: number | null;
+  studentId: string | null;
+  provider: string | null;
+  providerAccountId: string | null;
+  createdAt: string;
+};
+
+export function findUserByEmail(email: string): UserRecord | null {
+  const db = getDb();
+  const row = db
+    .prepare(`SELECT * FROM users WHERE email = ? COLLATE NOCASE LIMIT 1`)
+    .get(email.trim().toLowerCase()) as UserRecord | undefined;
+  return row ?? null;
+}
+
+export function findUserById(id: string): UserRecord | null {
+  const db = getDb();
+  const row = db.prepare(`SELECT * FROM users WHERE id = ? LIMIT 1`).get(id) as
+    | UserRecord
+    | undefined;
+  return row ?? null;
+}
+
+export function upsertUser(u: UserRecord): UserRecord {
+  const db = getDb();
+  db.prepare(
+    `INSERT INTO users (id,email,emailVerified,passwordHash,name,image,role,grade,studentId,provider,providerAccountId,createdAt)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+     ON CONFLICT(id) DO UPDATE SET
+       email=excluded.email,
+       emailVerified=excluded.emailVerified,
+       passwordHash=COALESCE(excluded.passwordHash, users.passwordHash),
+       name=excluded.name,
+       image=excluded.image,
+       role=excluded.role,
+       grade=excluded.grade,
+       studentId=excluded.studentId,
+       provider=excluded.provider,
+       providerAccountId=excluded.providerAccountId`,
+  ).run(
+    u.id,
+    u.email,
+    u.emailVerified,
+    u.passwordHash,
+    u.name,
+    u.image,
+    u.role,
+    u.grade,
+    u.studentId,
+    u.provider,
+    u.providerAccountId,
+    u.createdAt,
+  );
+  return u;
+}
+
+// ───────────────── Groups / Classes ─────────────────
+export type GroupRecord = {
+  id: string;
+  name: string;
+  grade: number;
+  teacherId: string;
+  joinCode: string;
+  createdAt: string;
+};
+
+export type GroupMember = {
+  groupId: string;
+  userId: string;
+  role: "teacher" | "student";
+  joinedAt: string;
+};
+
+export type GroupWithCount = GroupRecord & { memberCount: number };
+
+export function createGroup(g: GroupRecord) {
+  const db = getDb();
+  db.prepare(
+    `INSERT INTO groups (id,name,grade,teacherId,joinCode,createdAt)
+     VALUES (?,?,?,?,?,?)`,
+  ).run(g.id, g.name, g.grade, g.teacherId, g.joinCode, g.createdAt);
+  db.prepare(
+    `INSERT OR IGNORE INTO group_members (groupId,userId,role,joinedAt) VALUES (?,?,?,?)`,
+  ).run(g.id, g.teacherId, "teacher", g.createdAt);
+}
+
+export function groupsByTeacher(teacherId: string): GroupWithCount[] {
+  const db = getDb();
+  return db
+    .prepare(
+      `SELECT g.*, (SELECT COUNT(*) FROM group_members m WHERE m.groupId = g.id AND m.role = 'student') AS memberCount
+       FROM groups g WHERE g.teacherId = ? ORDER BY g.createdAt DESC`,
+    )
+    .all(teacherId) as GroupWithCount[];
+}
+
+export function groupsByUser(userId: string): GroupWithCount[] {
+  const db = getDb();
+  return db
+    .prepare(
+      `SELECT g.*, (SELECT COUNT(*) FROM group_members m2 WHERE m2.groupId = g.id AND m2.role = 'student') AS memberCount
+       FROM groups g
+       INNER JOIN group_members m ON m.groupId = g.id
+       WHERE m.userId = ?
+       ORDER BY g.createdAt DESC`,
+    )
+    .all(userId) as GroupWithCount[];
+}
+
+export function groupByJoinCode(code: string): GroupRecord | null {
+  const db = getDb();
+  const row = db
+    .prepare(`SELECT * FROM groups WHERE joinCode = ? LIMIT 1`)
+    .get(code.trim().toUpperCase()) as GroupRecord | undefined;
+  return row ?? null;
+}
+
+export function groupMembers(groupId: string): (GroupMember & { user: UserRecord | null })[] {
+  const db = getDb();
+  const rows = db
+    .prepare(
+      `SELECT m.groupId, m.userId, m.role, m.joinedAt,
+              u.id AS u_id, u.email AS u_email, u.name AS u_name, u.image AS u_image,
+              u.role AS u_role, u.grade AS u_grade, u.studentId AS u_studentId
+       FROM group_members m LEFT JOIN users u ON u.id = m.userId
+       WHERE m.groupId = ?
+       ORDER BY m.joinedAt DESC`,
+    )
+    .all(groupId) as Array<{
+      groupId: string;
+      userId: string;
+      role: "teacher" | "student";
+      joinedAt: string;
+      u_id: string | null;
+      u_email: string | null;
+      u_name: string | null;
+      u_image: string | null;
+      u_role: "teacher" | "student" | null;
+      u_grade: number | null;
+      u_studentId: string | null;
+    }>;
+  return rows.map((r) => ({
+    groupId: r.groupId,
+    userId: r.userId,
+    role: r.role,
+    joinedAt: r.joinedAt,
+    user: r.u_id
+      ? {
+          id: r.u_id,
+          email: r.u_email,
+          emailVerified: null,
+          passwordHash: null,
+          name: r.u_name,
+          image: r.u_image,
+          role: (r.u_role ?? "student") as "teacher" | "student",
+          grade: r.u_grade,
+          studentId: r.u_studentId,
+          provider: null,
+          providerAccountId: null,
+          createdAt: "",
+        }
+      : null,
+  }));
+}
+
+export function addGroupMember(groupId: string, userId: string, role: "teacher" | "student" = "student") {
+  const db = getDb();
+  db.prepare(
+    `INSERT OR IGNORE INTO group_members (groupId,userId,role,joinedAt) VALUES (?,?,?,?)`,
+  ).run(groupId, userId, role, new Date().toISOString());
+}
+
+export function removeGroupMember(groupId: string, userId: string) {
+  const db = getDb();
+  db.prepare(`DELETE FROM group_members WHERE groupId = ? AND userId = ?`).run(groupId, userId);
+}
+
+export function getGroup(id: string): GroupRecord | null {
+  const db = getDb();
+  const row = db.prepare(`SELECT * FROM groups WHERE id = ? LIMIT 1`).get(id) as
+    | GroupRecord
+    | undefined;
+  return row ?? null;
 }
 
 export function upsertStudent(s: StudentRecord) {

@@ -8,6 +8,7 @@ import {
   ClipboardCheck,
   ClipboardList,
   FileText,
+  GraduationCap,
   Home,
   Mic,
   Palette,
@@ -18,11 +19,13 @@ import {
 import { cn } from "@/lib/utils";
 import { Brand } from "@/components/layout/brand";
 import { Badge } from "@/components/ui/badge";
+import { UserMenu } from "@/components/auth/user-menu";
 
 const items: { href: string; label: string; icon: typeof Home; end?: boolean; badge?: string }[] = [
   { href: "/teacher", label: "Главная", icon: Home, end: true },
   { href: "/teacher/generate", label: "Генератор", icon: Wand2, badge: "AI" },
   { href: "/teacher/journal", label: "Журнал", icon: BookOpenCheck, badge: "NEW" },
+  { href: "/teacher/classes", label: "Классы", icon: GraduationCap, badge: "NEW" },
   { href: "/teacher/homework", label: "Домашки", icon: ClipboardList, badge: "NEW" },
   { href: "/teacher/board", label: "Доска", icon: Palette, badge: "NEW" },
   { href: "/teacher/pronunciation", label: "Произношение", icon: Mic, badge: "NEW" },
@@ -64,7 +67,7 @@ export function TeacherSidebar() {
           );
         })}
       </nav>
-      <div className="border-t border-border p-4">
+      <div className="space-y-3 border-t border-border p-4">
         <div className="rounded-lg bg-gradient-to-br from-primary/10 to-accent/10 p-3">
           <div className="flex items-center gap-2 text-xs font-medium text-primary">
             <Sparkles className="h-3.5 w-3.5" /> ФГОС • 2025
@@ -73,6 +76,7 @@ export function TeacherSidebar() {
             Готовые шаблоны тех. карт и тестов по программе Spotlight 2–8 класс
           </p>
         </div>
+        <UserMenu />
       </div>
     </aside>
   );
