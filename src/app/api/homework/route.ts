@@ -7,6 +7,7 @@ import {
   completionsForHomework,
   type Homework,
 } from "@/lib/db";
+import { auth } from "@/auth";
 
 export const runtime = "nodejs";
 
@@ -14,7 +15,11 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const gradeRaw = searchParams.get("grade");
   const grade = gradeRaw ? Number(gradeRaw) : undefined;
-  const items = listHomework(grade);
+  const session = await auth();
+  // If the requester is an authenticated student, filter by their group memberships.
+  const userId =
+    session?.user?.id && session.user.role === "student" ? session.user.id : undefined;
+  const items = listHomework(grade, userId);
   // Attach completion counts so the teacher sees progress next to each row.
   const withCompletions = items.map((h) => ({
     ...h,
@@ -38,6 +43,7 @@ export async function POST(req: Request) {
     resourcePayload: body.resourcePayload ?? null,
     dueDate: body.dueDate ?? null,
     createdAt: body.createdAt || new Date().toISOString(),
+    groupId: body.groupId ?? null,
   };
   insertHomework(h);
   return NextResponse.json({ homework: h });

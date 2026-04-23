@@ -16,6 +16,13 @@ type HomeworkRow = Homework & {
   completions: { homeworkId: string; studentId: string; completedAt: string }[];
 };
 
+type ClassItem = {
+  id: string;
+  name: string;
+  grade: number;
+  joinCode: string;
+};
+
 export default function TeacherHomeworkPage() {
   const [grade, setGrade] = useState<number>(5);
   const [rows, setRows] = useState<HomeworkRow[]>([]);
@@ -25,6 +32,8 @@ export default function TeacherHomeworkPage() {
   const [resourceType, setResourceType] = useState<Homework["resourceType"]>("reading");
   const [resourceId, setResourceId] = useState<string>("");
   const [instructions, setInstructions] = useState("");
+  const [classes, setClasses] = useState<ClassItem[]>([]);
+  const [groupId, setGroupId] = useState<string>("");
   const [dueDate, setDueDate] = useState<string>(() => {
     const d = new Date();
     d.setDate(d.getDate() + 3);
@@ -45,6 +54,19 @@ export default function TeacherHomeworkPage() {
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  // Load teacher's classes (if logged in). Silently ignores 401s when unauthenticated.
+  useEffect(() => {
+    void fetch("/api/classes?scope=teacher", { cache: "no-store" })
+      .then(async (r) => (r.ok ? ((await r.json()) as { classes?: ClassItem[] }).classes ?? [] : []))
+      .then(setClasses)
+      .catch(() => setClasses([]));
+  }, []);
+
+  const gradeClasses = useMemo(() => classes.filter((c) => c.grade === grade), [classes, grade]);
+  useEffect(() => {
+    if (groupId && !gradeClasses.find((c) => c.id === groupId)) setGroupId("");
+  }, [gradeClasses, groupId]);
 
   const readingOptions = useMemo(() => READINGS.filter((r) => r.grade === grade), [grade]);
   const dialogueOptions = useMemo(() => DIALOGUES.filter((d) => d.grade === grade), [grade]);
@@ -78,6 +100,7 @@ export default function TeacherHomeworkPage() {
           resourceType,
           resourceId: resourceId || null,
           dueDate: dueDate || null,
+          groupId: groupId || null,
         }),
       });
       setTitle("");
@@ -152,6 +175,18 @@ export default function TeacherHomeworkPage() {
             )}
             <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
           </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted-foreground">Кому:</span>
+            <Select value={groupId} onChange={(e) => setGroupId(e.target.value)} className="max-w-xs">
+              <option value="">Всему {grade} классу</option>
+              {gradeClasses.map((c) => (
+                <option key={c.id} value={c.id}>Только классу «{c.name}» ({c.joinCode})</option>
+              ))}
+            </Select>
+            {gradeClasses.length === 0 ? (
+              <span className="text-xs text-muted-foreground">(нет групп для {grade} — создай на вкладке «Классы»)</span>
+            ) : null}
+          </div>
           <textarea
             value={instructions}
             onChange={(e) => setInstructions(e.target.value)}
@@ -199,6 +234,13 @@ export default function TeacherHomeworkPage() {
                       <div className="flex flex-wrap items-center gap-2">
                         <div className="truncate text-sm font-medium">{row.title}</div>
                         <Badge variant="outline" className="text-[10px]">{row.resourceType}</Badge>
+                        {row.groupId ? (
+                          <Badge variant="primary" className="text-[10px]">
+                            класс: {classes.find((c) => c.id === row.groupId)?.name ?? "…"}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px]">всему {grade} кл</Badge>
+                        )}
                         {row.dueDate ? (
                           <Badge variant="primary" className="text-[10px]">до {row.dueDate}</Badge>
                         ) : null}

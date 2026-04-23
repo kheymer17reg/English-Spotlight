@@ -572,6 +572,7 @@ export type Homework = {
   resourcePayload: string | null;
   dueDate: string | null;
   createdAt: string;
+  groupId: string | null;
 };
 
 export type HomeworkCompletion = {
@@ -581,8 +582,21 @@ export type HomeworkCompletion = {
   completedAt: string;
 };
 
-export function listHomework(grade?: number): Homework[] {
+export function listHomework(grade?: number, userId?: string): Homework[] {
   const db = getDb();
+  if (typeof grade === "number" && userId) {
+    // Grade match AND (no groupId OR student is in groupId)
+    return db
+      .prepare(
+        `SELECT h.* FROM homework h
+         WHERE h.grade = ?
+           AND (h.groupId IS NULL OR EXISTS (
+             SELECT 1 FROM group_members m WHERE m.groupId = h.groupId AND m.userId = ?
+           ))
+         ORDER BY h.createdAt DESC`,
+      )
+      .all(grade, userId) as Homework[];
+  }
   if (typeof grade === "number") {
     return db
       .prepare(`SELECT * FROM homework WHERE grade = ? ORDER BY createdAt DESC`)
@@ -594,8 +608,8 @@ export function listHomework(grade?: number): Homework[] {
 export function insertHomework(h: Homework) {
   const db = getDb();
   db.prepare(
-    `INSERT INTO homework (id,grade,title,instructions,resourceType,resourceId,resourcePayload,dueDate,createdAt)
-     VALUES (?,?,?,?,?,?,?,?,?)`,
+    `INSERT INTO homework (id,grade,title,instructions,resourceType,resourceId,resourcePayload,dueDate,createdAt,groupId)
+     VALUES (?,?,?,?,?,?,?,?,?,?)`,
   ).run(
     h.id,
     h.grade,
@@ -606,6 +620,7 @@ export function insertHomework(h: Homework) {
     h.resourcePayload,
     h.dueDate,
     h.createdAt,
+    h.groupId,
   );
 }
 
