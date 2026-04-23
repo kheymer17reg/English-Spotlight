@@ -141,6 +141,28 @@ export default function PronunciationPage() {
             supported={Boolean(supported)}
             isActive={activeId === p.id}
             onActivate={(yes) => setActiveId(yes ? p.id : null)}
+            onResult={(phrase, r) => {
+              const categoryMap: Record<Phrase["kind"], "word" | "sentence" | "dialogue"> = {
+                word: "word",
+                sentence: "sentence",
+                "dialogue-line": "dialogue",
+              };
+              const missed = r.words.filter((w) => !w.ok).map((w) => w.word);
+              void fetch("/api/pronunciation", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({
+                  studentId: student.id,
+                  grade: student.grade,
+                  category: categoryMap[phrase.kind],
+                  expected: phrase.text,
+                  transcript: r.transcript,
+                  score: r.score,
+                  stars: r.stars,
+                  missedWords: missed,
+                }),
+              }).catch(() => {/* silent */});
+            }}
           />
         ))}
       </div>
@@ -153,11 +175,13 @@ function PhraseCard({
   supported,
   isActive,
   onActivate,
+  onResult,
 }: {
   phrase: Phrase;
   supported: boolean;
   isActive: boolean;
   onActivate: (active: boolean) => void;
+  onResult?: (phrase: Phrase, result: PronunciationResult) => void;
 }) {
   const [recording, setRecording] = useState(false);
   const [result, setResult] = useState<PronunciationResult | null>(null);
@@ -197,7 +221,9 @@ function PhraseCard({
     rec.onresult = (ev) => {
       const first = ev.results[0];
       const transcript = first?.[0]?.transcript ?? "";
-      setResult(scorePronunciation(phrase.text, transcript));
+      const r = scorePronunciation(phrase.text, transcript);
+      setResult(r);
+      onResult?.(phrase, r);
     };
     rec.onend = () => setRecording(false);
     rec.onerror = () => setRecording(false);
