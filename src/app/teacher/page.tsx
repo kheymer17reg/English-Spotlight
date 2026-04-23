@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, BarChart3, BookOpenCheck, ClipboardCheck, FileText, Palette, Sparkles, Users, Wand2 } from "lucide-react";
+import { ArrowRight, BarChart3, BookOpenCheck, ClipboardCheck, Compass, FileText, Palette, Sparkles, Users, Wand2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -95,6 +95,14 @@ export default function TeacherHome() {
           desc="Графики навыков, тепловая карта, активность."
           icon={BarChart3}
           tone="primary"
+        />
+        <ToolCard
+          href="/teacher/resources"
+          title="Библиотека"
+          desc="30+ проверенных сайтов: аудио, игры, видео, экзамены."
+          icon={Compass}
+          tone="accent"
+          badge="NEW"
         />
         <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 via-surface to-accent/5">
           <CardHeader>

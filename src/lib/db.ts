@@ -206,6 +206,19 @@ export function getDb() {
       PRIMARY KEY (studentId, badgeId)
     );
     CREATE INDEX IF NOT EXISTS idx_badges_student ON student_badges(studentId);
+    CREATE TABLE IF NOT EXISTS feedback (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      createdAt TEXT NOT NULL,
+      kind TEXT NOT NULL DEFAULT 'idea',
+      userId TEXT,
+      userRole TEXT,
+      userName TEXT,
+      pageUrl TEXT,
+      message TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'new'
+    );
+    CREATE INDEX IF NOT EXISTS idx_feedback_status ON feedback(status);
+    CREATE INDEX IF NOT EXISTS idx_feedback_created ON feedback(createdAt);
   `);
   // Lightweight migrations — add engine/azure columns if an older DB predates them.
   const pronCols = db

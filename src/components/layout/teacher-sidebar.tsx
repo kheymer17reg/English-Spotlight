@@ -7,9 +7,11 @@ import {
   BookOpenCheck,
   ClipboardCheck,
   ClipboardList,
+  Compass,
   FileText,
   GraduationCap,
   Home,
+  Inbox,
   Mic,
   Palette,
   Sparkles,
@@ -31,8 +33,10 @@ const items: { href: string; label: string; icon: typeof Home; end?: boolean; ba
   { href: "/teacher/pronunciation", label: "Произношение", icon: Mic, badge: "NEW" },
   { href: "/teacher/tests", label: "Тесты", icon: ClipboardCheck },
   { href: "/teacher/lessons", label: "Планы уроков", icon: FileText },
+  { href: "/teacher/resources", label: "Библиотека", icon: Compass, badge: "NEW" },
   { href: "/teacher/students", label: "Ученики", icon: Users },
   { href: "/teacher/analytics", label: "Аналитика", icon: BarChart3 },
+  { href: "/teacher/feedback", label: "Обратная связь", icon: Inbox },
 ];
 
 export function TeacherSidebar() {

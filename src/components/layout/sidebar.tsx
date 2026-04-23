@@ -6,6 +6,7 @@ import {
   BookOpen,
   BookOpenCheck,
   ClipboardList,
+  Compass,
   Flame,
   Gamepad2,
   GraduationCap,
@@ -80,6 +81,7 @@ const sections: NavSection[] = [
       { href: "/student/challenges", label: "Задания дня", icon: Flame },
       { href: "/student/mistakes", label: "Мои ошибки", icon: Target },
       { href: "/student/league", label: "Лига недели", icon: Trophy },
+      { href: "/student/resources", label: "Библиотека", icon: Compass, badge: "NEW" },
     ],
   },
   {
