@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { listMethodicalLessons, methodicalStats, upsertMethodicalLesson } from "@/lib/methodical-db";
+import {
+  getMethodicalLesson,
+  listMethodicalLessons,
+  methodicalStats,
+  upsertMethodicalLesson,
+} from "@/lib/methodical-db";
 import { buildSkeletons } from "@/lib/methodical-skeleton";
 import type { Grade } from "@/types";
 
@@ -16,13 +21,20 @@ export async function GET(req: Request) {
   return NextResponse.json({ lessons, stats });
 }
 
-// POST — ensure all 196 stub rows exist in DB (idempotent).
+// POST — ensure all 196 stub rows exist in DB. Does NOT overwrite lessons
+// that are already "generated" or "edited" (so batch-seed restarts are safe).
 export async function POST() {
   const skeletons = buildSkeletons();
   let inserted = 0;
+  let skipped = 0;
   for (const s of skeletons) {
+    const existing = getMethodicalLesson(s.id);
+    if (existing && existing.status !== "stub") {
+      skipped += 1;
+      continue;
+    }
     upsertMethodicalLesson(s);
     inserted += 1;
   }
-  return NextResponse.json({ ok: true, total: inserted });
+  return NextResponse.json({ ok: true, total: skeletons.length, inserted, skipped });
 }

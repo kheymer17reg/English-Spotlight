@@ -29,9 +29,11 @@ async function http(path, init) {
 async function main() {
   console.log(`[seed] base=${BASE} concurrency=${CONCURRENCY} only-stub=${ONLY_STUB} limit=${LIMIT || "∞"}`);
 
-  // Ensure stubs
-  const seedRes = await http("/api/lessons", { method: "POST" });
-  console.log(`[seed] stubs ensured: status=${seedRes.status} total=${seedRes.data?.total}`);
+  // Ensure stubs (idempotent on server — skips already-generated)
+  if (!args["skip-seed"]) {
+    const seedRes = await http("/api/lessons", { method: "POST" });
+    console.log(`[seed] stubs ensured: status=${seedRes.status} inserted=${seedRes.data?.inserted} skipped=${seedRes.data?.skipped}`);
+  }
 
   // List all lessons
   const listRes = await http("/api/lessons", { cache: "no-store" });
@@ -48,28 +50,38 @@ async function main() {
   let fail = 0;
   let idx = 0;
 
+  async function tryGenerate(l, wid, my) {
+    const maxAttempts = 6;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const started = Date.now();
+      const r = await http("/api/lessons/generate", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id: l.id }),
+      });
+      if (r.ok) {
+        console.log(`[w${wid}] ${my + 1}/${queue.length} OK  ${l.id} · ${Date.now() - started}ms · ${l.title.slice(0, 60)}`);
+        return true;
+      }
+      const err = typeof r.data === "object" ? JSON.stringify(r.data).slice(0, 300) : String(r.data).slice(0, 300);
+      // Rate-limited → parse suggested wait
+      const m = err.match(/try again in (\d+(?:\.\d+)?)s/);
+      const waitSec = m ? Math.ceil(Number(m[1])) + 2 : 20 * attempt;
+      console.warn(`[w${wid}] ${my + 1}/${queue.length} RETRY#${attempt} ${l.id} · ${r.status} · wait ${waitSec}s · ${err.slice(0, 100)}`);
+      if (r.status !== 429 && r.status !== 503 && r.status !== 500) return false;
+      await new Promise((resolve) => setTimeout(resolve, waitSec * 1000));
+    }
+    return false;
+  }
+
   async function worker(wid) {
     while (idx < queue.length) {
       const my = idx++;
       const l = queue[my];
-      const started = Date.now();
       try {
-        const r = await http("/api/lessons/generate", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ id: l.id }),
-        });
-        if (r.ok) {
-          ok++;
-          console.log(`[w${wid}] ${my + 1}/${queue.length} OK  ${l.id} · ${Date.now() - started}ms · ${l.title.slice(0, 60)}`);
-        } else {
-          fail++;
-          const err = typeof r.data === "object" ? r.data?.error : r.data;
-          console.warn(`[w${wid}] ${my + 1}/${queue.length} FAIL ${l.id} · ${r.status} · ${String(err).slice(0, 120)}`);
-          if (r.status === 429 || r.status === 503) {
-            await new Promise((resolve) => setTimeout(resolve, 30_000));
-          }
-        }
+        const success = await tryGenerate(l, wid, my);
+        if (success) ok++;
+        else fail++;
       } catch (e) {
         fail++;
         console.warn(`[w${wid}] ${my + 1}/${queue.length} EXCEPTION ${l.id} · ${e?.message ?? e}`);
