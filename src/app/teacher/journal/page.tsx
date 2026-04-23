@@ -496,6 +496,74 @@ function CellPopover({
     setMounted(true);
     return () => setMounted(false);
   }, []);
+
+  // Keyboard shortcuts: 2/3/4/5 — set mark; н/Н/N — absent; .  — present w/o mark;
+  // Backspace/Delete — clear mark; Esc — close; Enter (outside textarea) — save with current.
+  useEffect(() => {
+    function handler(e: KeyboardEvent) {
+      // Don't hijack typing inside comment textarea / inputs
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "TEXTAREA" || target.tagName === "INPUT")) {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          onClose();
+        }
+        return;
+      }
+      const attendance = current?.attendance ?? "present";
+      const key = e.key;
+      if (key === "Escape") {
+        e.preventDefault();
+        onClose();
+        return;
+      }
+      if (key === "2" || key === "3" || key === "4" || key === "5") {
+        e.preventDefault();
+        void onSave({
+          mark: key,
+          attendance: attendance === "absent" ? "present" : attendance,
+          comment: commentDraft || null,
+        });
+        return;
+      }
+      // Russian н, English n, uppercase variants = absent
+      if (key === "н" || key === "Н" || key === "n" || key === "N") {
+        e.preventDefault();
+        void onSave({ mark: null, attendance: "absent", comment: commentDraft || null });
+        return;
+      }
+      // "." — present без оценки (quick tick)
+      if (key === ".") {
+        e.preventDefault();
+        void onSave({
+          mark: current?.mark ?? null,
+          attendance: "present",
+          comment: commentDraft || null,
+        });
+        return;
+      }
+      if (key === "Backspace" || key === "Delete") {
+        e.preventDefault();
+        void onSave({
+          mark: null,
+          attendance: attendance,
+          comment: commentDraft || null,
+        });
+        return;
+      }
+      if (key === "Enter") {
+        e.preventDefault();
+        void onSave({
+          mark: current?.mark ?? null,
+          attendance: attendance,
+          comment: commentDraft || null,
+        });
+      }
+    }
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [current, commentDraft, onSave, onClose]);
+
   if (!mounted || typeof document === "undefined") return null;
   return createPortal(
     <>
@@ -578,6 +646,13 @@ function CellPopover({
           >
             Сохранить
           </Button>
+        </div>
+        <div className="mt-2 flex flex-wrap gap-x-2 gap-y-0.5 border-t border-border pt-2 text-[10px] text-muted-foreground">
+          <span><kbd className="rounded bg-muted px-1 font-mono">2-5</kbd> оценка</span>
+          <span><kbd className="rounded bg-muted px-1 font-mono">Н</kbd> пропуск</span>
+          <span><kbd className="rounded bg-muted px-1 font-mono">.</kbd> присут.</span>
+          <span><kbd className="rounded bg-muted px-1 font-mono">Del</kbd> стереть</span>
+          <span><kbd className="rounded bg-muted px-1 font-mono">Esc</kbd> закрыть</span>
         </div>
       </div>
     </>,
