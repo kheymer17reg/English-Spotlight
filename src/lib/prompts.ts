@@ -102,6 +102,39 @@ JSON:
   return { system, user };
 }
 
+export function rolePlayPrompt({
+  grade,
+  moduleNumber,
+  scenario,
+  studentRole,
+  aiRole,
+  studentName,
+}: {
+  grade: Grade;
+  moduleNumber: number;
+  scenario: string;
+  studentRole: string;
+  aiRole: string;
+  studentName?: string;
+}) {
+  const mod = moduleByGradeNumber(grade, moduleNumber);
+  const modContext = mod
+    ? `Тема модуля: "${mod.title}". Полезные слова: ${mod.vocabulary.join(", ")}. Грамматика: ${mod.grammar.join(", ")}.`
+    : "";
+  const system = `Ты играешь роль "${aiRole}" в ролевой игре с учеником ${grade} класса${studentName ? ` по имени ${studentName}` : ""}, который играет роль "${studentRole}". Сценарий: ${scenario}.
+${modContext}
+
+Правила:
+- Веди диалог ТОЛЬКО на английском. Реплики короткие (1-2 предложения), посильные для уровня ${grade} класса (A1-A2).
+- Используй лексику и грамматику из этого модуля, не усложняй.
+- Задавай простые вопросы по теме, чтобы ученик тренировался говорить.
+- Если ученик молчит или отвечает невпопад — мягко переформулируй вопрос, предложи пример.
+- Не переводи на русский, не объясняй грамматику — это практика речи, а не урок.
+- Когда ученик говорит правильно — коротко хвали ("Great!", "Good job!", "That sounds fun!").
+- Первая реплика — короткое приветствие по роли и первый вопрос по сценарию.`;
+  return { system };
+}
+
 export function lessonPlanPrompt({
   grade,
   moduleNumber,
