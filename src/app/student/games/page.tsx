@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, Keyboard, RefreshCw, Shuffle, Sparkles, Timer, Trophy, X } from "lucide-react";
+import { Check, Flame, Keyboard, PartyPopper, RefreshCw, Shuffle, Sparkles, Trophy, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,21 +59,41 @@ function StudentHud() {
   if (!student) return null;
   return (
     <div className="grid grid-cols-3 gap-2 sm:grid-cols-3">
-      <HudTile label="XP" value={`${student.xp}`} icon={<Sparkles className="h-4 w-4 text-primary" />} />
-      <HudTile label="Уровень" value={`${student.level}`} icon={<Trophy className="h-4 w-4 text-accent" />} />
-      <HudTile label="Серия" value={`${student.streak} дн`} icon={<Timer className="h-4 w-4 text-warning" />} />
+      <HudTile
+        label="XP"
+        value={`${student.xp}`}
+        icon={<Sparkles className="h-4 w-4 text-primary" />}
+        tint="from-primary/10 to-accent/5"
+      />
+      <HudTile
+        label="Уровень"
+        value={`${student.level}`}
+        icon={<Trophy className="h-4 w-4 text-accent" />}
+        tint="from-accent/10 to-primary/5"
+      />
+      <HudTile
+        label="Серия"
+        value={`${student.streak} дн`}
+        icon={<Flame className="h-4 w-4 text-orange-500 flame-pulse" />}
+        tint="from-orange-500/10 to-amber-500/5"
+      />
     </div>
   );
 }
 
-function HudTile({ label, value, icon }: { label: string; value: string; icon: React.ReactNode }) {
+function HudTile({ label, value, icon, tint }: { label: string; value: string; icon: React.ReactNode; tint: string }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-border bg-surface px-3 py-2">
+    <div
+      className={cn(
+        "flex items-center justify-between rounded-xl border border-border/60 bg-gradient-to-br px-3 py-2.5",
+        tint,
+      )}
+    >
       <div>
-        <div className="text-lg font-display font-semibold">{value}</div>
+        <div className="font-display text-xl font-semibold tabular-nums">{value}</div>
         <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
       </div>
-      {icon}
+      <div className="grid h-8 w-8 place-items-center rounded-lg bg-surface/70">{icon}</div>
     </div>
   );
 }
@@ -182,13 +202,18 @@ function MatchGame({ words }: { words: VocabWord[] }) {
       </CardHeader>
       <CardContent>
         {finishedMs !== null ? (
-          <div className="mb-4 flex items-center justify-between rounded-xl border border-success/40 bg-success/10 px-4 py-3">
-            <div>
-              <div className="text-sm font-medium text-success">
-                Готово за {(finishedMs / 1000).toFixed(1)} с · +{PAIR_COUNT * 5} XP
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-emerald-500/40 bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-primary/5 px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="grid h-11 w-11 flex-none place-items-center rounded-full bg-emerald-500/20 text-emerald-500">
+                <PartyPopper className="h-5 w-5" />
               </div>
-              <div className="text-xs text-muted-foreground">
-                Попаданий: {correct} / {attempts} ({accuracy}%)
+              <div>
+                <div className="font-semibold text-emerald-700 dark:text-emerald-300">
+                  Готово за {(finishedMs / 1000).toFixed(1)} с · +{PAIR_COUNT * 5} XP
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Попаданий: {correct} / {attempts} ({accuracy}%)
+                </div>
               </div>
             </div>
             <Button size="sm" onClick={restart} className="gap-1">
@@ -301,11 +326,40 @@ function TypeGame({ words }: { words: VocabWord[] }) {
   };
 
   if (finished) {
+    const pct = Math.round((correctN / ROUND) * 100);
+    const tone =
+      pct >= 80
+        ? "emerald"
+        : pct >= 50
+          ? "amber"
+          : "rose";
+    const toneCls =
+      tone === "emerald"
+        ? "border-emerald-500/40 from-emerald-500/15 to-teal-500/5"
+        : tone === "amber"
+          ? "border-amber-500/40 from-amber-500/15 to-orange-500/5"
+          : "border-rose-500/40 from-rose-500/15 to-pink-500/5";
     return (
-      <Card>
+      <Card className={cn("overflow-hidden border bg-gradient-to-br", toneCls)}>
         <CardHeader>
-          <CardTitle>Раунд завершён</CardTitle>
-          <CardDescription>Правильно: {correctN} / {ROUND} · +{correctN * 6} XP</CardDescription>
+          <div className="flex items-center gap-3">
+            <div
+              className={cn(
+                "grid h-12 w-12 place-items-center rounded-2xl text-white",
+                tone === "emerald" && "bg-gradient-to-br from-emerald-500 to-teal-500",
+                tone === "amber" && "bg-gradient-to-br from-amber-500 to-orange-500",
+                tone === "rose" && "bg-gradient-to-br from-rose-500 to-pink-500",
+              )}
+            >
+              <PartyPopper className="h-6 w-6" />
+            </div>
+            <div>
+              <CardTitle>Раунд завершён</CardTitle>
+              <CardDescription>
+                Правильно: {correctN} / {ROUND} ({pct}%) · +{correctN * 6} XP
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <Button onClick={restart} className="gap-1">

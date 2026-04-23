@@ -36,11 +36,21 @@ export default function VocabularyPage() {
     );
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5">
-      <div className="flex items-end justify-between">
+    <div className="mx-auto max-w-5xl space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl font-semibold">Словарь</h1>
-          <p className="text-muted-foreground">{student.grade} класс · {words.length} слов</p>
+          <p className="text-muted-foreground">
+            {student.grade} класс · <span className="font-semibold text-foreground">{words.length}</span> слов
+          </p>
+        </div>
+        <div className="flex gap-1 rounded-xl border border-border bg-muted/30 p-1 text-[11px] text-muted-foreground">
+          <span className="flex items-center gap-1 rounded-lg bg-surface px-2 py-1">
+            <Brain className="h-3 w-3 text-violet-500" /> SM-2
+          </span>
+          <span className="flex items-center gap-1 rounded-lg bg-surface px-2 py-1">
+            <Sparkles className="h-3 w-3 text-primary" /> XP за повторение
+          </span>
         </div>
       </div>
       <Tabs defaultValue="review">
@@ -125,26 +135,49 @@ function FlashCards({ words }: { words: VocabWord[] }) {
     setIdx(0);
     setFlipped(false);
   };
+  const progress = Math.round(((idx + 1) / order.length) * 100);
   return (
     <div className="mx-auto max-w-xl space-y-4">
-      <Card className="overflow-hidden">
-        <CardContent
-          className="relative grid place-items-center p-10 text-center cursor-pointer select-none"
-          onClick={() => setFlipped((f) => !f)}
-        >
+      <Card
+        onClick={() => setFlipped((f) => !f)}
+        className={cn(
+          "relative min-h-[240px] cursor-pointer select-none overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 via-surface to-accent/5 transition-all",
+          flipped ? "border-accent/30" : "hover:-translate-y-0.5 hover:shadow-lifted",
+        )}
+      >
+        <div className="h-1 w-full bg-muted">
+          <div
+            className="h-full bg-gradient-to-r from-primary to-accent transition-all"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        <CardContent className="grid min-h-[220px] place-items-center p-10 text-center">
           <div className="absolute right-4 top-4">
-            <Badge variant="primary">{idx + 1} / {order.length}</Badge>
+            <Badge variant="primary">
+              {idx + 1} / {order.length}
+            </Badge>
+          </div>
+          <div className="absolute left-4 top-4">
+            <Badge variant="outline" className="text-[10px]">
+              {w.partOfSpeech}
+            </Badge>
           </div>
           {!flipped ? (
-            <>
-              <div className="text-4xl font-display font-semibold">{w.word}</div>
-              <div className="mt-2 text-sm text-muted-foreground">Нажми, чтобы увидеть перевод</div>
-            </>
+            <div className="animate-fade-in">
+              <div className="font-display text-5xl font-semibold tracking-tight">
+                {w.word}
+              </div>
+              <div className="mt-3 text-xs uppercase tracking-widest text-muted-foreground">
+                тапни, чтобы перевернуть
+              </div>
+            </div>
           ) : (
-            <>
-              <div className="text-3xl font-display">{w.translation}</div>
-              <div className="mt-2 text-sm text-muted-foreground italic">“{w.example}”</div>
-            </>
+            <div className="animate-fade-in">
+              <div className="font-display text-3xl text-primary">{w.translation}</div>
+              <div className="mt-3 max-w-sm text-sm italic text-muted-foreground">
+                “{w.example}”
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -222,16 +255,40 @@ function Quiz({ words }: { words: VocabWord[] }) {
     }, 700);
   };
 
+  const progress = Math.round(((idx + 1) / pool.length) * 100);
   return (
-    <Card>
+    <Card className="overflow-hidden">
+      <div className="h-1 w-full bg-muted">
+        <div
+          className="h-full bg-gradient-to-r from-primary to-accent transition-all"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
       <CardHeader>
-        <CardTitle>Как переводится?</CardTitle>
-        <CardDescription>
-          Вопрос {idx + 1} из {pool.length} · правильных {correctN}
-        </CardDescription>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <CardTitle>Как переводится?</CardTitle>
+            <CardDescription>
+              Вопрос {idx + 1} из {pool.length}
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="success" className="gap-1">
+              {correctN} · верных
+            </Badge>
+            <Badge variant="outline" className="gap-1">
+              {idx + 1} / {pool.length}
+            </Badge>
+          </div>
+        </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="text-3xl font-display font-semibold">{cur.word}</div>
+      <CardContent className="space-y-5 pb-6">
+        <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-surface to-accent/5 p-8 text-center">
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            Слово
+          </div>
+          <div className="mt-1 font-display text-4xl font-semibold">{cur.word}</div>
+        </div>
         <div className="grid gap-2 sm:grid-cols-2">
           {options.map((t) => {
             const state =
@@ -247,10 +304,12 @@ function Quiz({ words }: { words: VocabWord[] }) {
                 key={t}
                 type="button"
                 onClick={() => onPick(t)}
+                disabled={picked != null}
                 className={cn(
-                  "rounded-lg border border-border bg-surface px-3 py-2 text-left text-sm transition-colors hover:bg-muted",
-                  state === "correct" && "border-success bg-success/10 text-success",
-                  state === "wrong" && "border-destructive bg-destructive/10 text-destructive",
+                  "group rounded-xl border bg-surface px-4 py-3 text-left text-sm font-medium transition-all",
+                  state === "idle" && "border-border hover:-translate-y-0.5 hover:border-primary/30 hover:bg-muted hover:shadow-soft",
+                  state === "correct" && "border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+                  state === "wrong" && "border-rose-500 bg-rose-500/10 text-rose-700 dark:text-rose-300",
                 )}
               >
                 {t}
@@ -459,19 +518,29 @@ function StatsGrid({
   stats: ReturnType<typeof deckStats>;
   inline?: boolean;
 }) {
-  const items = [
-    { label: "К повторению", value: stats.dueNow, tone: "text-primary" },
-    { label: "Новых", value: stats.untouched, tone: "text-muted-foreground" },
-    { label: "Учу", value: stats.learning, tone: "text-warning" },
-    { label: "Повторяю", value: stats.review, tone: "text-accent" },
-    { label: "Освоено", value: stats.mastered, tone: "text-success" },
+  const items: { label: string; value: number; tint: string; iconTint: string }[] = [
+    { label: "К повторению", value: stats.dueNow, tint: "from-primary/10 to-accent/5", iconTint: "text-primary" },
+    { label: "Новых", value: stats.untouched, tint: "from-muted/60 to-muted/20", iconTint: "text-muted-foreground" },
+    { label: "Учу", value: stats.learning, tint: "from-amber-500/10 to-orange-500/5", iconTint: "text-amber-500" },
+    { label: "Повторяю", value: stats.review, tint: "from-violet-500/10 to-fuchsia-500/5", iconTint: "text-violet-500" },
+    { label: "Освоено", value: stats.mastered, tint: "from-emerald-500/10 to-teal-500/5", iconTint: "text-emerald-500" },
   ];
   return (
     <div className={cn("grid gap-2", inline ? "grid-cols-2 sm:grid-cols-5" : "grid-cols-2 sm:grid-cols-5")}>
       {items.map((it) => (
-        <div key={it.label} className="rounded-lg border border-border bg-surface px-3 py-2">
-          <div className={cn("text-lg font-display font-semibold", it.tone)}>{it.value}</div>
-          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{it.label}</div>
+        <div
+          key={it.label}
+          className={cn(
+            "rounded-xl border border-border/60 bg-gradient-to-br px-3 py-2.5",
+            it.tint,
+          )}
+        >
+          <div className={cn("font-display text-xl font-semibold tabular-nums", it.iconTint)}>
+            {it.value}
+          </div>
+          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+            {it.label}
+          </div>
         </div>
       ))}
     </div>
