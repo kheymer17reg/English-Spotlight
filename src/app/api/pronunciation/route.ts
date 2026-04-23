@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { insertPronAttempt, pronAttemptsByGrade, type PronAttempt } from "@/lib/db";
+import {
+  insertPronAttempt,
+  pronAttemptsByGrade,
+  type AzurePronStored,
+  type PronAttempt,
+} from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -12,7 +17,10 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const body = (await req.json()) as Partial<PronAttempt>;
+  const body = (await req.json()) as Partial<PronAttempt> & {
+    azure?: AzurePronStored | null;
+    engine?: "web-speech" | "azure" | null;
+  };
   if (!body.studentId || !body.grade || !body.category || !body.expected) {
     return NextResponse.json(
       { error: "studentId, grade, category, expected required" },
@@ -29,6 +37,8 @@ export async function POST(req: Request) {
     stars: Number(body.stars ?? 0),
     missedWords: Array.isArray(body.missedWords) ? body.missedWords.map(String) : [],
     createdAt: new Date().toISOString(),
+    engine: body.engine ?? null,
+    azure: body.azure ?? null,
   };
   insertPronAttempt(attempt);
   return NextResponse.json({ ok: true, attempt });

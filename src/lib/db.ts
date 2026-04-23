@@ -107,6 +107,17 @@ export function getDb() {
     CREATE INDEX IF NOT EXISTS idx_pron_student ON pronunciation_attempts(studentId);
     CREATE INDEX IF NOT EXISTS idx_pron_grade ON pronunciation_attempts(grade);
   `);
+  // Lightweight migrations — add engine/azure columns if an older DB predates them.
+  const pronCols = db
+    .prepare(`PRAGMA table_info(pronunciation_attempts)`)
+    .all() as { name: string }[];
+  const pronColNames = new Set(pronCols.map((c) => c.name));
+  if (!pronColNames.has("engine")) {
+    db.exec(`ALTER TABLE pronunciation_attempts ADD COLUMN engine TEXT`);
+  }
+  if (!pronColNames.has("azure")) {
+    db.exec(`ALTER TABLE pronunciation_attempts ADD COLUMN azure TEXT`);
+  }
   _db = db;
   return db;
 }
@@ -403,6 +414,20 @@ export function completionsForHomework(homeworkId: string): HomeworkCompletion[]
     .all(homeworkId) as HomeworkCompletion[];
 }
 
+export type AzurePronWordStored = {
+  word: string;
+  accuracyScore: number;
+  errorType: string;
+};
+
+export type AzurePronStored = {
+  accuracy: number;
+  fluency: number;
+  completeness: number;
+  pronScore: number;
+  words: AzurePronWordStored[];
+};
+
 export type PronAttempt = {
   studentId: string;
   grade: number;
@@ -413,14 +438,16 @@ export type PronAttempt = {
   stars: number;
   missedWords: string[];
   createdAt: string;
+  engine?: "web-speech" | "azure" | null;
+  azure?: AzurePronStored | null;
 };
 
 export function insertPronAttempt(a: PronAttempt) {
   const db = getDb();
   db.prepare(
     `INSERT INTO pronunciation_attempts
-      (studentId,grade,category,expected,transcript,score,stars,missedWords,createdAt)
-     VALUES (?,?,?,?,?,?,?,?,?)`,
+      (studentId,grade,category,expected,transcript,score,stars,missedWords,createdAt,engine,azure)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
   ).run(
     a.studentId,
     a.grade,
@@ -431,6 +458,8 @@ export function insertPronAttempt(a: PronAttempt) {
     a.stars,
     JSON.stringify(a.missedWords),
     a.createdAt,
+    a.engine ?? null,
+    a.azure ? JSON.stringify(a.azure) : null,
   );
 }
 
@@ -440,8 +469,15 @@ export function pronAttemptsByGrade(grade: number, limit = 500): PronAttempt[] {
     .prepare(
       `SELECT * FROM pronunciation_attempts WHERE grade = ? ORDER BY createdAt DESC LIMIT ?`,
     )
-    .all(grade, limit) as (Omit<PronAttempt, "missedWords"> & { missedWords: string })[];
-  return rows.map((r) => ({ ...r, missedWords: safeJsonArray(r.missedWords) }));
+    .all(grade, limit) as (Omit<PronAttempt, "missedWords" | "azure"> & {
+      missedWords: string;
+      azure: string | null;
+    })[];
+  return rows.map((r) => ({
+    ...r,
+    missedWords: safeJsonArray(r.missedWords),
+    azure: r.azure ? (safeJsonObject(r.azure) as AzurePronStored | null) : null,
+  }));
 }
 
 function safeJsonArray(s: string): string[] {
@@ -450,6 +486,14 @@ function safeJsonArray(s: string): string[] {
     return Array.isArray(v) ? v.map(String) : [];
   } catch {
     return [];
+  }
+}
+
+function safeJsonObject(s: string): unknown {
+  try {
+    return JSON.parse(s);
+  } catch {
+    return null;
   }
 }
 
