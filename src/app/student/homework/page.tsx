@@ -12,6 +12,7 @@ import { READINGS } from "@/lib/readings";
 import { DIALOGUES } from "@/lib/dialogues";
 import type { Homework } from "@/lib/db";
 import { cn } from "@/lib/utils";
+import { logActivity } from "@/lib/activity-client";
 
 type HomeworkRow = Homework & {
   completions: { homeworkId: string; studentId: string; completedAt: string }[];
@@ -19,7 +20,7 @@ type HomeworkRow = Homework & {
 
 export default function StudentHomeworkPage() {
   const student = useStore((s) => s.student);
-  const addXp = useStore((s) => s.addXp);
+  const updateStudent = useStore((s) => s.updateStudent);
   const [rows, setRows] = useState<HomeworkRow[]>([]);
   const [doneIds, setDoneIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -77,7 +78,17 @@ export default function StudentHomeworkPage() {
         else next.add(id);
         return next;
       });
-      if (!currentlyDone) addXp(8);
+      if (!currentlyDone) {
+        const row = rows.find((r) => r.id === id);
+        const result = await logActivity({
+          studentId: student.id,
+          activityType: "homework",
+          xp: 8,
+          skill: "reading",
+          meta: { homeworkId: id, title: row?.title ?? "" },
+        });
+        if (result) updateStudent({ xp: result.xp, level: result.level, streak: result.streak });
+      }
     } finally {
       setPending(null);
     }

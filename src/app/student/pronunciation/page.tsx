@@ -14,6 +14,7 @@ import { useStore } from "@/lib/store";
 import { isAzureEnabled, runAzurePronunciation, type AzurePronResult } from "@/lib/azure-pron";
 import type { Grade } from "@/types";
 import { cn } from "@/lib/utils";
+import { logActivity } from "@/lib/activity-client";
 
 type UnifiedResult =
   | ({ engine: "web-speech" } & PronunciationResult)
@@ -78,6 +79,7 @@ function buildPhrases(grade: Grade): Phrase[] {
 
 export default function PronunciationPage() {
   const student = useStore((s) => s.student);
+  const updateStudent = useStore((s) => s.updateStudent);
   const [supported, setSupported] = useState<boolean | null>(null);
   const [azure, setAzure] = useState<boolean | null>(null);
   const [cat, setCat] = useState<Phrase["kind"]>("word");
@@ -190,6 +192,18 @@ export default function PronunciationPage() {
                     : null,
                 }),
               }).catch(() => {/* silent */});
+              const xp = Math.max(1, Math.round(shape.stars * 2));
+              void logActivity({
+                studentId: student.id,
+                activityType: "pronunciation",
+                xp,
+                correct: shape.stars >= 3 ? 1 : 0,
+                total: 1,
+                skill: "speaking",
+                meta: { expected: phrase.text, stars: shape.stars, engine: r.engine },
+              }).then((res) => {
+                if (res) updateStudent({ xp: res.xp, level: res.level, streak: res.streak });
+              });
             }}
           />
         ))}

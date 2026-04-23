@@ -10,9 +10,10 @@ import { EmptyState } from "@/components/ui/empty";
 import { useStore } from "@/lib/store";
 import { vocabularyByGrade } from "@/lib/vocabulary";
 import { shuffle } from "@/lib/utils";
-import type { VocabWord } from "@/types";
+import type { Grade, VocabWord } from "@/types";
 import { cn } from "@/lib/utils";
 import { computeBadges } from "@/lib/badges";
+import { logActivity } from "@/lib/activity-client";
 
 export default function GamesPage() {
   const student = useStore((s) => s.student);
@@ -97,7 +98,8 @@ function makeMatchDeck(words: VocabWord[], n: number): MatchCard[] {
 }
 
 function MatchGame({ words }: { words: VocabWord[] }) {
-  const addXp = useStore((s) => s.addXp);
+  const student = useStore((s) => s.student);
+  const updateStudent = useStore((s) => s.updateStudent);
   const PAIR_COUNT = Math.min(6, words.length);
   const [deck, setDeck] = useState<MatchCard[]>(() => makeMatchDeck(words, PAIR_COUNT));
   const [solved, setSolved] = useState<Set<string>>(new Set());
@@ -111,9 +113,22 @@ function MatchGame({ words }: { words: VocabWord[] }) {
   useEffect(() => {
     if (solved.size === PAIR_COUNT && finishedMs === null) {
       setFinishedMs(Date.now() - started);
-      addXp(PAIR_COUNT * 5);
+      if (student) {
+        void logActivity({
+          studentId: student.id,
+          activityType: "game",
+          xp: PAIR_COUNT * 5,
+          correct: correct,
+          total: attempts,
+          skill: "vocabulary",
+          meta: { game: "match", pairs: PAIR_COUNT },
+        }).then((r) => {
+          if (r) updateStudent({ xp: r.xp, level: r.level, streak: r.streak });
+        });
+      }
     }
-  }, [solved, PAIR_COUNT, finishedMs, started, addXp]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [solved, PAIR_COUNT, finishedMs, started]);
 
   const onClick = (c: MatchCard) => {
     if (solved.has(c.wordId)) return;
@@ -223,7 +238,8 @@ function normaliseAnswer(s: string): string {
 }
 
 function TypeGame({ words }: { words: VocabWord[] }) {
-  const addXp = useStore((s) => s.addXp);
+  const student = useStore((s) => s.student);
+  const updateStudent = useStore((s) => s.updateStudent);
   const ROUND = Math.min(8, words.length);
   const [queue, setQueue] = useState<VocabWord[]>(() => shuffle(words).slice(0, ROUND));
   const [idx, setIdx] = useState(0);
@@ -251,9 +267,31 @@ function TypeGame({ words }: { words: VocabWord[] }) {
     if (!cur || result) return;
     const ok = normaliseAnswer(input) === normaliseAnswer(cur.word);
     setResult(ok ? "correct" : "wrong");
-    if (ok) {
-      setCorrectN((n) => n + 1);
-      addXp(6);
+    if (ok) setCorrectN((n) => n + 1);
+    if (student) {
+      void logActivity({
+        studentId: student.id,
+        activityType: "game",
+        xp: ok ? 6 : 1,
+        correct: ok ? 1 : 0,
+        total: 1,
+        skill: "vocabulary",
+        mistakes: ok
+          ? undefined
+          : [
+              {
+                kind: "vocab",
+                source: "vocab_drill",
+                question: cur.translation,
+                correctAnswer: cur.word,
+                studentAnswer: input,
+                wordId: cur.id,
+                grade: (student.grade as number) as Grade,
+              },
+            ],
+      }).then((r) => {
+        if (r) updateStudent({ xp: r.xp, level: r.level, streak: r.streak });
+      });
     }
     setTimeout(() => {
       setIdx((i) => i + 1);

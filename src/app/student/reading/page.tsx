@@ -9,9 +9,11 @@ import { EmptyState } from "@/components/ui/empty";
 import { useStore } from "@/lib/store";
 import { READINGS } from "@/lib/readings";
 import type { ReadingText } from "@/types";
+import { logActivity } from "@/lib/activity-client";
 
 export default function ReadingPage() {
   const student = useStore((s) => s.student);
+  const updateStudent = useStore((s) => s.updateStudent);
   const texts: ReadingText[] = useMemo(() => {
     if (!student) return [];
     return [
@@ -45,12 +47,27 @@ export default function ReadingPage() {
           </button>
         ))}
       </aside>
-      {active ? <ReadingView t={active} /> : null}
+      {active ? (
+        <ReadingView
+          t={active}
+          onRevealAnswer={() => {
+            void logActivity({
+              studentId: student.id,
+              activityType: "reading",
+              xp: 3,
+              skill: "reading",
+              meta: { readingId: active.id },
+            }).then((r) => {
+              if (r) updateStudent({ xp: r.xp, level: r.level, streak: r.streak });
+            });
+          }}
+        />
+      ) : null}
     </div>
   );
 }
 
-function ReadingView({ t }: { t: ReadingText }) {
+function ReadingView({ t, onRevealAnswer }: { t: ReadingText; onRevealAnswer: () => void }) {
   const [open, setOpen] = useState(false);
   const [show, setShow] = useState<Record<string, boolean>>({});
   const speak = (s: string) => {
@@ -113,7 +130,10 @@ function ReadingView({ t }: { t: ReadingText }) {
                 ) : (
                   <button
                     type="button"
-                    onClick={() => setShow((s) => ({ ...s, [q.q]: true }))}
+                    onClick={() => {
+                      setShow((s) => ({ ...s, [q.q]: true }));
+                      onRevealAnswer();
+                    }}
                     className="mt-1 text-xs text-muted-foreground hover:text-foreground"
                   >
                     Показать ответ

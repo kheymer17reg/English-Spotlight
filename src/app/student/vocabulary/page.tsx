@@ -10,8 +10,9 @@ import { EmptyState } from "@/components/ui/empty";
 import { useStore } from "@/lib/store";
 import { vocabularyByGrade } from "@/lib/vocabulary";
 import { shuffle } from "@/lib/utils";
-import type { VocabWord } from "@/types";
+import type { Grade, VocabWord } from "@/types";
 import { cn } from "@/lib/utils";
+import { logActivity } from "@/lib/activity-client";
 import {
   deckStats,
   isDue,
@@ -101,13 +102,23 @@ function FlashCards({ words }: { words: VocabWord[] }) {
   const [order, setOrder] = useState(() => shuffle(words));
   const [idx, setIdx] = useState(0);
   const [flipped, setFlipped] = useState(false);
-  const addXp = useStore((s) => s.addXp);
+  const student = useStore((s) => s.student);
+  const updateStudent = useStore((s) => s.updateStudent);
   const w = order[idx];
   if (!w) return null;
   const next = () => {
     setFlipped(false);
     setIdx((i) => (i + 1) % order.length);
-    addXp(2);
+    if (student) {
+      void logActivity({
+        studentId: student.id,
+        activityType: "vocab_review",
+        xp: 2,
+        skill: "vocabulary",
+      }).then((r) => {
+        if (r) updateStudent({ xp: r.xp, level: r.level, streak: r.streak });
+      });
+    }
   };
   const reshuffle = () => {
     setOrder(shuffle(words));
@@ -154,7 +165,8 @@ function Quiz({ words }: { words: VocabWord[] }) {
   const [idx, setIdx] = useState(0);
   const [picked, setPicked] = useState<string | null>(null);
   const [correctN, setCorrectN] = useState(0);
-  const addXp = useStore((s) => s.addXp);
+  const student = useStore((s) => s.student);
+  const updateStudent = useStore((s) => s.updateStudent);
   const cur = pool[idx];
   const options = useMemo(() => {
     if (!cur) return [];
@@ -177,9 +189,32 @@ function Quiz({ words }: { words: VocabWord[] }) {
   const onPick = (t: string) => {
     if (picked) return;
     setPicked(t);
-    if (t === cur.translation) {
-      setCorrectN((c) => c + 1);
-      addXp(5);
+    const isRight = t === cur.translation;
+    if (isRight) setCorrectN((c) => c + 1);
+    if (student) {
+      void logActivity({
+        studentId: student.id,
+        activityType: "vocab_review",
+        xp: isRight ? 5 : 1,
+        correct: isRight ? 1 : 0,
+        total: 1,
+        skill: "vocabulary",
+        mistakes: isRight
+          ? undefined
+          : [
+              {
+                kind: "vocab",
+                source: "vocab_drill",
+                question: cur.word,
+                correctAnswer: cur.translation,
+                studentAnswer: t,
+                wordId: cur.id,
+                grade: (student.grade as number) as Grade,
+              },
+            ],
+      }).then((r) => {
+        if (r) updateStudent({ xp: r.xp, level: r.level, streak: r.streak });
+      });
     }
     setTimeout(() => {
       setPicked(null);
@@ -237,7 +272,8 @@ function ReviewDeck({
   studentId: string;
   grade: number;
 }) {
-  const addXp = useStore((s) => s.addXp);
+  const storeStudent = useStore((s) => s.student);
+  const updateStudent = useStore((s) => s.updateStudent);
   const [deck, setDeck] = useState<Record<string, SrCard>>({});
   const [version, setVersion] = useState(0);
   const [showTranslation, setShowTranslation] = useState(false);
@@ -280,9 +316,32 @@ function ReviewDeck({
     setDeck(loadDeck(studentId, grade));
     setVersion((v) => v + 1);
     setDoneCount((n) => n + 1);
-    if (quality === "good") addXp(4);
-    if (quality === "easy") addXp(6);
-    if (quality === "hard") addXp(2);
+    if (!storeStudent) return;
+    const xpMap: Record<SrQuality, number> = { again: 1, hard: 2, good: 4, easy: 6 };
+    const mistakes =
+      quality === "again"
+        ? [
+            {
+              kind: "vocab" as const,
+              source: "vocab_drill" as const,
+              question: current.word,
+              correctAnswer: current.translation,
+              wordId: current.id,
+              grade: grade as Grade,
+            },
+          ]
+        : undefined;
+    void logActivity({
+      studentId: storeStudent.id,
+      activityType: "vocab_review",
+      xp: xpMap[quality],
+      correct: quality === "again" ? 0 : 1,
+      total: 1,
+      skill: "vocabulary",
+      mistakes,
+    }).then((r) => {
+      if (r) updateStudent({ xp: r.xp, level: r.level, streak: r.streak });
+    });
   };
 
   if (!current) {

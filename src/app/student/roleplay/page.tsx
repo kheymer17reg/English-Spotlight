@@ -29,6 +29,7 @@ import { useStore } from "@/lib/store";
 import { scenariosByGrade, SCENARIOS, type RoleplayScenario } from "@/lib/scenarios";
 import type { ChatMessage } from "@/types";
 import { cn } from "@/lib/utils";
+import { logActivity } from "@/lib/activity-client";
 
 const ICONS: Record<string, typeof Users> = {
   Users,
@@ -48,8 +49,7 @@ const ICONS: Record<string, typeof Users> = {
 
 export default function RoleplayPage() {
   const student = useStore((s) => s.student);
-  const addXp = useStore((s) => s.addXp);
-  const bumpStreak = useStore((s) => s.bumpStreak);
+  const updateStudent = useStore((s) => s.updateStudent);
   const list = useMemo(() => {
     if (!student) return [];
     const primary = scenariosByGrade(student.grade);
@@ -110,9 +110,16 @@ export default function RoleplayPage() {
             scenario={active}
             grade={student.grade}
             studentName={student.name}
-            onSuccess={() => {
-              addXp(10);
-              bumpStreak();
+            onSuccess={async () => {
+              if (!student) return;
+              const r = await logActivity({
+                studentId: student.id,
+                activityType: "roleplay",
+                xp: 10,
+                skill: "speaking",
+                meta: { scenarioId: active?.id ?? "" },
+              });
+              if (r) updateStudent({ xp: r.xp, level: r.level, streak: r.streak });
             }}
           />
         ) : null}

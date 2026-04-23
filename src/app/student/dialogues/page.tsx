@@ -9,9 +9,11 @@ import { EmptyState } from "@/components/ui/empty";
 import { useStore } from "@/lib/store";
 import { DIALOGUES } from "@/lib/dialogues";
 import type { Dialogue } from "@/types";
+import { logActivity } from "@/lib/activity-client";
 
 export default function DialoguesPage() {
   const student = useStore((s) => s.student);
+  const updateStudent = useStore((s) => s.updateStudent);
   const items: Dialogue[] = useMemo(() => {
     if (!student) return [];
     return [
@@ -47,12 +49,28 @@ export default function DialoguesPage() {
           </button>
         ))}
       </aside>
-      {active ? <DialogueView d={active} /> : null}
+      {active ? (
+        <DialogueView
+          d={active}
+          onActivity={(kind) => {
+            void logActivity({
+              studentId: student.id,
+              activityType: "listening",
+              xp: kind === "listen" ? 4 : 3,
+              skill: "listening",
+              moduleNumber: active.module,
+              meta: { dialogueId: active.id, kind },
+            }).then((r) => {
+              if (r) updateStudent({ xp: r.xp, level: r.level, streak: r.streak });
+            });
+          }}
+        />
+      ) : null}
     </div>
   );
 }
 
-function DialogueView({ d }: { d: Dialogue }) {
+function DialogueView({ d, onActivity }: { d: Dialogue; onActivity: (kind: "listen" | "reveal") => void }) {
   const [glossaryOpen, setGlossaryOpen] = useState(false);
   const [showAnswer, setShowAnswer] = useState<Record<string, boolean>>({});
   const [playing, setPlaying] = useState(false);
@@ -73,6 +91,7 @@ function DialogueView({ d }: { d: Dialogue }) {
     window.speechSynthesis.cancel();
     cancelRef.current = false;
     setPlaying(true);
+    onActivity("listen");
     for (let i = 0; i < d.lines.length; i++) {
       if (cancelRef.current) break;
       setPlayingLine(i);
@@ -197,7 +216,10 @@ function DialogueView({ d }: { d: Dialogue }) {
                   ) : (
                     <button
                       type="button"
-                      onClick={() => setShowAnswer((s) => ({ ...s, [q.q]: true }))}
+                      onClick={() => {
+                        setShowAnswer((s) => ({ ...s, [q.q]: true }));
+                        onActivity("reveal");
+                      }}
                       className="mt-1 text-xs text-muted-foreground hover:text-foreground"
                     >
                       Показать ответ
