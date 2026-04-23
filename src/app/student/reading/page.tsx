@@ -76,9 +76,10 @@ function ReadingView({ t }: { t: ReadingText }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
-        <div className="whitespace-pre-wrap rounded-xl bg-muted/40 p-5 font-[15px] leading-relaxed">
-          {t.text}
-        </div>
+        <InteractiveText text={t.text} glossary={t.glossary} speak={speak} />
+        <p className="-mt-3 text-[11px] text-muted-foreground">
+          Подсказка: нажми на слово, чтобы услышать его. Подчёркнутые слова из глоссария — с переводом.
+        </p>
 
         <div>
           <button
@@ -124,5 +125,75 @@ function ReadingView({ t }: { t: ReadingText }) {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function InteractiveText({
+  text,
+  glossary,
+  speak,
+}: {
+  text: string;
+  glossary: { word: string; translation: string }[];
+  speak: (s: string) => void;
+}) {
+  const dict = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const g of glossary) {
+      const key = g.word.toLowerCase().split(/\s+/)[0];
+      if (key && !m.has(key)) m.set(key, g.translation);
+    }
+    return m;
+  }, [glossary]);
+
+  return (
+    <div className="whitespace-pre-wrap rounded-xl bg-muted/40 p-5 text-[15px] leading-relaxed">
+      {text.split(/(\s+)/).map((chunk, i) => {
+        if (/^\s+$/.test(chunk)) return <span key={i}>{chunk}</span>;
+        const bare = chunk.replace(/[^\p{L}\p{N}]+/gu, "").toLowerCase();
+        const translation = bare ? dict.get(bare) : undefined;
+        return (
+          <Word
+            key={i}
+            raw={chunk}
+            translation={translation}
+            onSpeak={() => speak(chunk.replace(/[^\p{L}\p{N}\p{M}'-]+/gu, ""))}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function Word({
+  raw,
+  translation,
+  onSpeak,
+}: {
+  raw: string;
+  translation?: string;
+  onSpeak: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const hasTranslation = Boolean(translation);
+  return (
+    <span
+      onMouseEnter={() => hasTranslation && setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onClick={() => {
+        onSpeak();
+        if (hasTranslation) setOpen((o) => !o);
+      }}
+      className={`relative inline-block cursor-pointer rounded px-[1px] transition-colors hover:bg-primary/10 ${
+        hasTranslation ? "border-b border-dashed border-primary/60 font-medium text-primary" : ""
+      }`}
+    >
+      {raw}
+      {open && hasTranslation ? (
+        <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-1 -translate-x-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-[12px] font-normal text-foreground shadow-lg">
+          {translation}
+        </span>
+      ) : null}
+    </span>
   );
 }
