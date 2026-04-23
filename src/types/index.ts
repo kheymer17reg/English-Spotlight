@@ -105,6 +105,54 @@ export interface LessonPlan {
   createdAt: string;
 }
 
+// Methodical lesson plan (ФГОС-compliant, full technological map)
+export type LessonKind =
+  | "introduction"
+  | "vocabulary"
+  | "grammar_present"
+  | "grammar_practice"
+  | "reading_culture"
+  | "listening_writing"
+  | "revision";
+
+export interface MethodicalStage {
+  name: string; // "Организационный момент" / "Актуализация знаний" / ...
+  minutes: number;
+  teacherScript: string; // what teacher says / does, with English phrases
+  studentActivity: string; // what students do
+  uud: string[]; // ["Регулятивные: целеполагание", "Коммуникативные: ..."]
+}
+
+export interface MethodicalObjectives {
+  subject: string[]; // предметные
+  metaSubject: string[]; // метапредметные
+  personal: string[]; // личностные
+}
+
+export interface MethodicalLesson {
+  id: string; // l_g{grade}_m{module}_n{number}
+  grade: Grade;
+  moduleNumber: number;
+  moduleTitle: string;
+  lessonNumber: number; // 1..7 within module
+  kind: LessonKind;
+  title: string;
+  textbookPages: string; // e.g. "SB pp. 24-25, WB p. 16"
+  duration: number; // minutes
+  lessonType: string; // "Урок открытия нового знания" etc
+  objectives: MethodicalObjectives;
+  equipment: string[];
+  vocabulary: string[];
+  grammar: string[];
+  stages: MethodicalStage[];
+  reflection: string;
+  homework: string;
+  handouts: { title: string; content: string }[];
+  status: "stub" | "generated" | "edited";
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface StudentRecord {
   id: string;
   name: string;

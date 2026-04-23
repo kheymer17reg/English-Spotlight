@@ -139,6 +139,31 @@ export function getDb() {
       PRIMARY KEY (groupId, userId)
     );
     CREATE INDEX IF NOT EXISTS idx_members_user ON group_members(userId);
+    CREATE TABLE IF NOT EXISTS methodical_lessons (
+      id TEXT PRIMARY KEY,
+      grade INTEGER NOT NULL,
+      moduleNumber INTEGER NOT NULL,
+      moduleTitle TEXT NOT NULL,
+      lessonNumber INTEGER NOT NULL,
+      kind TEXT NOT NULL,
+      title TEXT NOT NULL,
+      textbookPages TEXT NOT NULL,
+      duration INTEGER NOT NULL,
+      lessonType TEXT NOT NULL,
+      objectives TEXT NOT NULL,
+      equipment TEXT NOT NULL,
+      vocabulary TEXT NOT NULL,
+      grammar TEXT NOT NULL,
+      stages TEXT NOT NULL,
+      reflection TEXT NOT NULL DEFAULT '',
+      homework TEXT NOT NULL DEFAULT '',
+      handouts TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'stub',
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_methodical_grade ON methodical_lessons(grade);
+    CREATE INDEX IF NOT EXISTS idx_methodical_module ON methodical_lessons(grade, moduleNumber);
   `);
   // Lightweight migrations — add engine/azure columns if an older DB predates them.
   const pronCols = db
