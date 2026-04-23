@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Brain, RefreshCw, Shuffle, Sparkles, Volume2 } from "lucide-react";
+import { Brain, RefreshCw, Shuffle, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/ui/empty";
+import { SpeakButton } from "@/components/audio/speak-button";
 import { useStore } from "@/lib/store";
 import { vocabularyByGrade } from "@/lib/vocabulary";
 import { shuffle } from "@/lib/utils";
@@ -82,13 +83,6 @@ export default function VocabularyPage() {
 }
 
 function WordCard({ w }: { w: VocabWord }) {
-  const speak = () => {
-    if (typeof window === "undefined" || !window.speechSynthesis) return;
-    const u = new SpeechSynthesisUtterance(w.word);
-    u.lang = "en-US";
-    u.rate = 0.95;
-    window.speechSynthesis.speak(u);
-  };
   return (
     <Card>
       <CardContent className="flex items-center justify-between gap-3 p-4">
@@ -100,9 +94,7 @@ function WordCard({ w }: { w: VocabWord }) {
           <div className="text-sm text-muted-foreground">{w.translation}</div>
           <div className="mt-1 truncate text-xs italic text-muted-foreground">“{w.example}”</div>
         </div>
-        <Button variant="ghost" size="icon" aria-label="Произнести" onClick={speak}>
-          <Volume2 className="h-4 w-4" />
-        </Button>
+        <SpeakButton text={w.word} />
       </CardContent>
     </Card>
   );
@@ -167,6 +159,12 @@ function FlashCards({ words }: { words: VocabWord[] }) {
               <div className="font-display text-5xl font-semibold tracking-tight">
                 {w.word}
               </div>
+              <div
+                className="mt-4 inline-flex"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <SpeakButton text={w.word} variant="chip" label="Прослушать" />
+              </div>
               <div className="mt-3 text-xs uppercase tracking-widest text-muted-foreground">
                 тапни, чтобы перевернуть
               </div>
@@ -176,6 +174,12 @@ function FlashCards({ words }: { words: VocabWord[] }) {
               <div className="font-display text-3xl text-primary">{w.translation}</div>
               <div className="mt-3 max-w-sm text-sm italic text-muted-foreground">
                 “{w.example}”
+              </div>
+              <div
+                className="mt-4 inline-flex"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <SpeakButton text={w.example} variant="chip" label="Прослушать пример" />
               </div>
             </div>
           )}
@@ -357,14 +361,6 @@ function ReviewDeck({
 
   const current = queue[0];
 
-  const speak = useCallback((text: string) => {
-    if (typeof window === "undefined" || !window.speechSynthesis) return;
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = "en-US";
-    u.rate = 0.95;
-    window.speechSynthesis.speak(u);
-  }, []);
-
   useEffect(() => {
     setShowTranslation(false);
   }, [current?.id]);
@@ -435,11 +431,12 @@ function ReviewDeck({
               За эту сессию: {doneCount}
             </CardDescription>
           </div>
-          <Button variant="ghost" size="icon" aria-label="Произнести" onClick={() => speak(current.word)}>
-            <Volume2 className="h-5 w-5" />
-          </Button>
+          <SpeakButton text={current.word} />
         </CardHeader>
         <CardContent className="space-y-5 pb-6">
+          <div className="flex justify-center">
+            <SpeakButton text={current.example} variant="chip" label="Пример" />
+          </div>
           <button
             type="button"
             onClick={() => setShowTranslation((v) => !v)}

@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Volume2, BookOpen, ChevronDown } from "lucide-react";
+import { BookOpen, ChevronDown } from "lucide-react";
+import { SpeakButton } from "@/components/audio/speak-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -70,7 +71,9 @@ export default function ReadingPage() {
 function ReadingView({ t, onRevealAnswer }: { t: ReadingText; onRevealAnswer: () => void }) {
   const [open, setOpen] = useState(false);
   const [show, setShow] = useState<Record<string, boolean>>({});
-  const speak = (s: string) => {
+  // Word-level clicks still use Web Speech for instant latency (TTS API
+  // roundtrip would feel sluggish on short fragments).
+  const speakWord = (s: string) => {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
     const u = new SpeechSynthesisUtterance(s);
     u.lang = "en-US";
@@ -87,13 +90,11 @@ function ReadingView({ t, onRevealAnswer }: { t: ReadingText; onRevealAnswer: ()
             <CardTitle>{t.title}</CardTitle>
             <CardDescription>С глоссарием и вопросами на понимание</CardDescription>
           </div>
-          <Button variant="outline" size="sm" onClick={() => speak(t.text)} className="gap-2">
-            <Volume2 className="h-4 w-4" /> Прослушать
-          </Button>
+          <SpeakButton text={t.text} lang="en" variant="chip" label="Прослушать" />
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
-        <InteractiveText text={t.text} glossary={t.glossary} speak={speak} />
+        <InteractiveText text={t.text} glossary={t.glossary} speak={speakWord} />
         <p className="-mt-3 text-[11px] text-muted-foreground">
           Подсказка: нажми на слово, чтобы услышать его. Подчёркнутые слова из глоссария — с переводом.
         </p>
