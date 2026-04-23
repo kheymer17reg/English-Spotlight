@@ -65,7 +65,7 @@ export function FeedbackWidget() {
         aria-label="Обратная связь"
         onClick={() => setOpen((s) => !s)}
         className={cn(
-          "fixed bottom-5 right-5 z-50 grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-primary to-accent text-white shadow-glow transition-transform hover:scale-105",
+          "fixed bottom-[5.25rem] right-4 z-50 grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-primary to-accent text-white shadow-glow transition-transform hover:scale-105 lg:bottom-5 lg:right-5",
           open && "rotate-45",
         )}
       >
@@ -73,7 +73,7 @@ export function FeedbackWidget() {
       </button>
 
       {open ? (
-        <div className="fixed bottom-20 right-5 z-50 w-[calc(100vw-2.5rem)] max-w-sm rounded-2xl border border-border bg-surface shadow-lifted">
+        <div className="fixed bottom-36 right-4 z-50 w-[calc(100vw-2rem)] max-w-sm rounded-2xl border border-border bg-surface shadow-lifted lg:bottom-20 lg:right-5">
           <div className="flex items-start gap-3 border-b border-border p-4">
             <div className="grid h-9 w-9 flex-none place-items-center rounded-xl bg-gradient-to-br from-primary to-accent text-white">
               <Sparkles className="h-4 w-4" />

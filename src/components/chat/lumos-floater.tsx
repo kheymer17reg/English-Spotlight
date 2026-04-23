@@ -88,7 +88,7 @@ export function LumosFloater() {
         aria-label="Спросить Lumos"
         onClick={() => setOpen((s) => !s)}
         className={cn(
-          "fixed bottom-5 left-5 z-50 inline-flex h-12 items-center gap-2 rounded-full bg-gradient-to-br from-primary to-accent px-4 text-sm font-medium text-white shadow-glow transition-transform hover:scale-105",
+          "fixed bottom-[5.25rem] left-4 z-50 inline-flex h-12 items-center gap-2 rounded-full bg-gradient-to-br from-primary to-accent px-4 text-sm font-medium text-white shadow-glow transition-transform hover:scale-105 lg:bottom-5 lg:left-5",
           open && "scale-95",
         )}
       >
@@ -97,7 +97,7 @@ export function LumosFloater() {
       </button>
 
       {open ? (
-        <div className="fixed bottom-20 left-5 z-50 flex w-[calc(100vw-2.5rem)] max-w-sm flex-col rounded-2xl border border-border bg-surface shadow-lifted">
+        <div className="fixed bottom-36 left-4 z-50 flex w-[calc(100vw-2rem)] max-w-sm flex-col rounded-2xl border border-border bg-surface shadow-lifted lg:bottom-20 lg:left-5">
           <div className="flex items-start justify-between gap-3 border-b border-border p-4">
             <div className="flex items-start gap-3">
               <div className="grid h-9 w-9 flex-none place-items-center rounded-xl bg-gradient-to-br from-primary to-accent text-white">
