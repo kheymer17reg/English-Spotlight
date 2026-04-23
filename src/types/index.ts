@@ -34,9 +34,29 @@ export interface VocabWord {
 export interface ReadingText {
   id: string;
   grade: Grade;
+  module?: number;
   title: string;
   level: "A1" | "A2" | "B1";
   text: string;
+  glossary: { word: string; translation: string }[];
+  questions: { q: string; a: string }[];
+}
+
+export interface DialogueLine {
+  speaker: "A" | "B";
+  text: string;
+}
+
+export interface Dialogue {
+  id: string;
+  grade: Grade;
+  module: number;
+  title: string;
+  level: "A1" | "A2" | "B1";
+  speakerA: string;
+  speakerB: string;
+  summary: string;
+  lines: DialogueLine[];
   glossary: { word: string; translation: string }[];
   questions: { q: string; a: string }[];
 }
