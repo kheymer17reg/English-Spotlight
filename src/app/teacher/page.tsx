@@ -109,7 +109,7 @@ export default function TeacherHome() {
             <CardTitle>Шпаргалка по программе</CardTitle>
             <CardDescription>Сколько модулей в каждом классе</CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-4 gap-2 text-sm">
+          <CardContent className="grid grid-cols-3 gap-2 text-sm sm:grid-cols-4">
             {counts.map((c) => (
               <div
                 key={c.grade}

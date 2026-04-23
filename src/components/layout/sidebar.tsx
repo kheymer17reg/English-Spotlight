@@ -41,7 +41,7 @@ interface NavSection {
   items: NavItem[];
 }
 
-const sections: NavSection[] = [
+export const studentNavSections: NavSection[] = [
   {
     title: "Обзор",
     items: [
@@ -102,7 +102,7 @@ export function StudentSidebar() {
         <Brand />
       </div>
       <nav className="scrollbar-thin flex-1 space-y-5 overflow-y-auto px-3 py-3">
-        {sections.map((section) => (
+        {studentNavSections.map((section) => (
           <div key={section.title} className="space-y-1">
             <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">
               {section.title}

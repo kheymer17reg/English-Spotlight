@@ -23,7 +23,7 @@ import { Brand } from "@/components/layout/brand";
 import { Badge } from "@/components/ui/badge";
 import { UserMenu } from "@/components/auth/user-menu";
 
-const items: { href: string; label: string; icon: typeof Home; end?: boolean; badge?: string }[] = [
+export const teacherNavItems: { href: string; label: string; icon: typeof Home; end?: boolean; badge?: string }[] = [
   { href: "/teacher", label: "Главная", icon: Home, end: true },
   { href: "/teacher/generate", label: "Генератор", icon: Wand2, badge: "AI" },
   { href: "/teacher/journal", label: "Журнал", icon: BookOpenCheck, badge: "NEW" },
@@ -47,7 +47,7 @@ export function TeacherSidebar() {
         <Brand />
       </div>
       <nav className="flex-1 space-y-1 px-3 py-2">
-        {items.map((item) => {
+        {teacherNavItems.map((item) => {
           const active = item.end ? pathname === item.href : pathname.startsWith(item.href);
           return (
             <Link
