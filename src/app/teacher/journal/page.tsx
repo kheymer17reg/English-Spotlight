@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { CalendarPlus, Download, Loader2, Plus, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { CalendarPlus, Download, FileText, Loader2, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -153,6 +154,12 @@ export default function TeacherJournalPage() {
           <Button variant="outline" size="sm" onClick={exportCsv} className="gap-2">
             <Download className="h-4 w-4" /> CSV
           </Button>
+          <Link
+            href={`/teacher/journal/report?grade=${grade}`}
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-surface px-3 text-sm font-medium hover:bg-muted"
+          >
+            <FileText className="h-4 w-4" /> PDF
+          </Link>
         </div>
       </div>
 
