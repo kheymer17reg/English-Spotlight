@@ -164,6 +164,48 @@ export function getDb() {
     );
     CREATE INDEX IF NOT EXISTS idx_methodical_grade ON methodical_lessons(grade);
     CREATE INDEX IF NOT EXISTS idx_methodical_module ON methodical_lessons(grade, moduleNumber);
+    CREATE TABLE IF NOT EXISTS student_activity (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      studentId TEXT NOT NULL,
+      activityType TEXT NOT NULL,
+      xp INTEGER NOT NULL DEFAULT 0,
+      correct INTEGER,
+      total INTEGER,
+      skill TEXT,
+      moduleNumber INTEGER,
+      meta TEXT,
+      createdAt TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_activity_student ON student_activity(studentId);
+    CREATE INDEX IF NOT EXISTS idx_activity_student_date ON student_activity(studentId, createdAt);
+    CREATE INDEX IF NOT EXISTS idx_activity_skill ON student_activity(skill);
+    CREATE TABLE IF NOT EXISTS student_mistakes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      studentId TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      source TEXT NOT NULL,
+      question TEXT NOT NULL,
+      correctAnswer TEXT NOT NULL,
+      studentAnswer TEXT,
+      wordId TEXT,
+      moduleNumber INTEGER,
+      grade INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active',
+      nextDue TEXT,
+      timesSeen INTEGER NOT NULL DEFAULT 1,
+      timesCorrect INTEGER NOT NULL DEFAULT 0,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_mistakes_student ON student_mistakes(studentId, status);
+    CREATE INDEX IF NOT EXISTS idx_mistakes_due ON student_mistakes(studentId, nextDue);
+    CREATE TABLE IF NOT EXISTS student_badges (
+      studentId TEXT NOT NULL,
+      badgeId TEXT NOT NULL,
+      unlockedAt TEXT NOT NULL,
+      PRIMARY KEY (studentId, badgeId)
+    );
+    CREATE INDEX IF NOT EXISTS idx_badges_student ON student_badges(studentId);
   `);
   // Lightweight migrations — add engine/azure columns if an older DB predates them.
   const pronCols = db

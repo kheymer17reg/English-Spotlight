@@ -9,8 +9,9 @@ import { Select } from "@/components/ui/select";
 import { EmptyState } from "@/components/ui/empty";
 import { useStore } from "@/lib/store";
 import { modulesByGrade } from "@/lib/curriculum";
-import type { ExerciseItem, ExerciseType, GeneratedExercise } from "@/types";
+import type { ExerciseItem, ExerciseType, GeneratedExercise, MistakeKind } from "@/types";
 import { cn } from "@/lib/utils";
+import { computeExerciseXp, logActivity } from "@/lib/activity-client";
 
 const TYPE_LABELS: Record<ExerciseType, string> = {
   multiple_choice: "Тест (4 варианта)",
@@ -20,9 +21,15 @@ const TYPE_LABELS: Record<ExerciseType, string> = {
   true_false: "Верно / неверно",
 };
 
+function exerciseKindToMistakeKind(type: ExerciseType): MistakeKind {
+  if (type === "match_pairs" || type === "open_ended") return "vocab";
+  if (type === "fill_blank" || type === "true_false") return "grammar";
+  return "grammar";
+}
+
 export default function PracticePage() {
   const student = useStore((s) => s.student);
-  const addXp = useStore((s) => s.addXp);
+  const updateStudent = useStore((s) => s.updateStudent);
   const modules = useMemo(() => (student ? modulesByGrade(student.grade) : []), [student]);
   const [moduleNum, setModuleNum] = useState(student?.currentModule ?? 1);
   const [type, setType] = useState<ExerciseType>("multiple_choice");
@@ -67,11 +74,37 @@ export default function PracticePage() {
     }
   };
 
-  const check = () => {
+  const check = async () => {
     setSubmitted(true);
-    if (!ex) return;
+    if (!ex || !student) return;
     const correct = ex.items.reduce((acc, it) => acc + (isCorrect(it, answers[it.id]) ? 1 : 0), 0);
-    addXp(Math.round((correct / ex.items.length) * 20));
+    const total = ex.items.length;
+    const mistakeKind = exerciseKindToMistakeKind(ex.type);
+    const mistakes = ex.items
+      .filter((it) => !isCorrect(it, answers[it.id]))
+      .map((it) => ({
+        kind: mistakeKind,
+        source: "exercise" as const,
+        question: it.prompt,
+        correctAnswer: expectedString(it),
+        studentAnswer: answers[it.id] ?? "",
+        moduleNumber: ex.module,
+        grade: student.grade,
+      }));
+    const result = await logActivity({
+      studentId: student.id,
+      activityType: "exercise",
+      xp: computeExerciseXp(correct, total),
+      correct,
+      total,
+      skill: mistakeKind === "vocab" ? "vocabulary" : "grammar",
+      moduleNumber: ex.module,
+      mistakes,
+      meta: { type: ex.type, difficulty: ex.difficulty },
+    });
+    if (result) {
+      updateStudent({ xp: result.xp, level: result.level, streak: result.streak });
+    }
   };
 
   const reveal = (id: string) => setRevealed((r) => ({ ...r, [id]: true }));

@@ -17,6 +17,7 @@ import {
   Mic2,
   Sparkles,
   Target,
+  Trophy,
   UserRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,8 @@ const items: { href: string; label: string; icon: typeof Home; end?: boolean; ba
   { href: "/student/classes", label: "Мои классы", icon: GraduationCap, badge: "NEW" },
   { href: "/student/games", label: "Игровой зал", icon: Gamepad2, badge: "NEW" },
   { href: "/student/challenges", label: "Задания дня", icon: Flame },
+  { href: "/student/mistakes", label: "Мои ошибки", icon: Target, badge: "NEW" },
+  { href: "/student/league", label: "Лига недели", icon: Trophy, badge: "NEW" },
   { href: "/student/progress", label: "Прогресс", icon: LineChart },
   { href: "/student/profile", label: "Профиль", icon: UserRound },
 ];

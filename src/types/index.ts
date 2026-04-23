@@ -187,3 +187,100 @@ export interface ProviderInfo {
   model: string;
   configured: boolean;
 }
+
+// ───── Student activity / motivation (Wave 5) ─────
+export type ActivityType =
+  | "vocab_review"
+  | "exercise"
+  | "homework"
+  | "pronunciation"
+  | "roleplay"
+  | "reading"
+  | "listening"
+  | "game"
+  | "chat"
+  | "mistake_review";
+
+export interface ActivityRecord {
+  id: number;
+  studentId: string;
+  activityType: ActivityType;
+  xp: number;
+  correct: number | null;
+  total: number | null;
+  skill: "grammar" | "vocabulary" | "reading" | "listening" | "speaking" | null;
+  moduleNumber: number | null;
+  meta: Record<string, unknown> | null;
+  createdAt: string;
+}
+
+export type MistakeKind = "vocab" | "grammar" | "listening" | "translation" | "reading";
+export type MistakeSource = "exercise" | "vocab_drill" | "homework" | "test" | "dialogue";
+export type MistakeStatus = "active" | "mastered";
+
+export interface MistakeRecord {
+  id: number;
+  studentId: string;
+  kind: MistakeKind;
+  source: MistakeSource;
+  question: string;
+  correctAnswer: string;
+  studentAnswer: string | null;
+  wordId: string | null;
+  moduleNumber: number | null;
+  grade: Grade;
+  status: MistakeStatus;
+  nextDue: string | null;
+  timesSeen: number;
+  timesCorrect: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BadgeDefinition {
+  id: string;
+  title: string;
+  description: string;
+  icon: "flame" | "star" | "trophy" | "medal" | "crown" | "award" | "sparkles" | "target" | "zap" | "rocket";
+}
+
+export interface UnlockedBadge extends BadgeDefinition {
+  unlockedAt: string;
+}
+
+export interface StudentProgressReport {
+  student: {
+    id: string;
+    name: string;
+    grade: Grade;
+    xp: number;
+    level: number;
+    streak: number;
+    xpThisWeek: number;
+  };
+  skills: { skill: string; accuracy: number; attempts: number }[];
+  recent: ActivityRecord[];
+  badges: { unlocked: UnlockedBadge[]; locked: BadgeDefinition[] };
+  mistakes: { active: number; mastered: number; dueNow: number };
+  weeklyXp: { day: string; xp: number }[]; // last 7 days
+}
+
+export interface LeagueEntry {
+  rank: number;
+  studentId: string;
+  name: string;
+  xpThisWeek: number;
+  level: number;
+  badgesCount: number;
+  isMe: boolean;
+}
+
+export interface LeagueResponse {
+  scope: "class" | "school";
+  groupId: string | null;
+  groupName: string | null;
+  weekStart: string;
+  weekEnd: string;
+  top: LeagueEntry[];
+  me: LeagueEntry | null;
+}
