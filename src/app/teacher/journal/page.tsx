@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CalendarPlus, Download, Loader2, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -349,7 +349,12 @@ function CellPopover({
   onClose: () => void;
 }) {
   const current = cell.entry;
-  if (typeof document === "undefined") return null;
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+  if (!mounted || typeof document === "undefined") return null;
   return createPortal(
     <>
       <button
