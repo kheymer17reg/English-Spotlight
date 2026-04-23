@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   BookOpen,
   BookOpenCheck,
+  ClipboardList,
   Flame,
   Gamepad2,
   GraduationCap,
@@ -33,6 +34,7 @@ const items: { href: string; label: string; icon: typeof Home; end?: boolean; ba
   { href: "/student/pronunciation", label: "Лингафон", icon: Mic2, badge: "NEW" },
   { href: "/student/roleplay", label: "Ролевик (голос)", icon: Mic, badge: "NEW" },
   { href: "/student/journal", label: "Мой журнал", icon: BookOpenCheck, badge: "NEW" },
+  { href: "/student/homework", label: "Мои задания", icon: ClipboardList, badge: "NEW" },
   { href: "/student/games", label: "Игровой зал", icon: Gamepad2, badge: "NEW" },
   { href: "/student/challenges", label: "Задания дня", icon: Flame },
   { href: "/student/progress", label: "Прогресс", icon: LineChart },

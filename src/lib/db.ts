@@ -72,6 +72,40 @@ export function getDb() {
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS homework (
+      id TEXT PRIMARY KEY,
+      grade INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      instructions TEXT,
+      resourceType TEXT NOT NULL,
+      resourceId TEXT,
+      resourcePayload TEXT,
+      dueDate TEXT,
+      createdAt TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_homework_grade ON homework(grade);
+    CREATE TABLE IF NOT EXISTS homework_completions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      homeworkId TEXT NOT NULL,
+      studentId TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'done',
+      completedAt TEXT NOT NULL,
+      UNIQUE(homeworkId, studentId)
+    );
+    CREATE TABLE IF NOT EXISTS pronunciation_attempts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      studentId TEXT NOT NULL,
+      grade INTEGER NOT NULL,
+      category TEXT NOT NULL,
+      expected TEXT NOT NULL,
+      transcript TEXT NOT NULL,
+      score REAL NOT NULL,
+      stars INTEGER NOT NULL,
+      missedWords TEXT NOT NULL,
+      createdAt TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_pron_student ON pronunciation_attempts(studentId);
+    CREATE INDEX IF NOT EXISTS idx_pron_grade ON pronunciation_attempts(grade);
   `);
   _db = db;
   return db;
@@ -283,6 +317,140 @@ export function upsertBoardNote(note: BoardNote) {
 export function deleteBoardNote(id: string) {
   const db = getDb();
   db.prepare(`DELETE FROM board_notes WHERE id = ?`).run(id);
+}
+
+export type Homework = {
+  id: string;
+  grade: number;
+  title: string;
+  instructions: string | null;
+  resourceType: "reading" | "dialogue" | "exercise" | "text" | "link";
+  resourceId: string | null;
+  resourcePayload: string | null;
+  dueDate: string | null;
+  createdAt: string;
+};
+
+export type HomeworkCompletion = {
+  homeworkId: string;
+  studentId: string;
+  status: string;
+  completedAt: string;
+};
+
+export function listHomework(grade?: number): Homework[] {
+  const db = getDb();
+  if (typeof grade === "number") {
+    return db
+      .prepare(`SELECT * FROM homework WHERE grade = ? ORDER BY createdAt DESC`)
+      .all(grade) as Homework[];
+  }
+  return db.prepare(`SELECT * FROM homework ORDER BY createdAt DESC`).all() as Homework[];
+}
+
+export function insertHomework(h: Homework) {
+  const db = getDb();
+  db.prepare(
+    `INSERT INTO homework (id,grade,title,instructions,resourceType,resourceId,resourcePayload,dueDate,createdAt)
+     VALUES (?,?,?,?,?,?,?,?,?)`,
+  ).run(
+    h.id,
+    h.grade,
+    h.title,
+    h.instructions,
+    h.resourceType,
+    h.resourceId,
+    h.resourcePayload,
+    h.dueDate,
+    h.createdAt,
+  );
+}
+
+export function deleteHomework(id: string) {
+  const db = getDb();
+  db.prepare(`DELETE FROM homework_completions WHERE homeworkId = ?`).run(id);
+  db.prepare(`DELETE FROM homework WHERE id = ?`).run(id);
+}
+
+export function markHomeworkDone(homeworkId: string, studentId: string) {
+  const db = getDb();
+  db.prepare(
+    `INSERT INTO homework_completions (homeworkId,studentId,status,completedAt)
+     VALUES (?,?,?,?)
+     ON CONFLICT(homeworkId, studentId) DO UPDATE SET
+       status=excluded.status, completedAt=excluded.completedAt`,
+  ).run(homeworkId, studentId, "done", new Date().toISOString());
+}
+
+export function unmarkHomework(homeworkId: string, studentId: string) {
+  const db = getDb();
+  db.prepare(
+    `DELETE FROM homework_completions WHERE homeworkId = ? AND studentId = ?`,
+  ).run(homeworkId, studentId);
+}
+
+export function completionsForStudent(studentId: string): HomeworkCompletion[] {
+  const db = getDb();
+  return db
+    .prepare(`SELECT * FROM homework_completions WHERE studentId = ?`)
+    .all(studentId) as HomeworkCompletion[];
+}
+
+export function completionsForHomework(homeworkId: string): HomeworkCompletion[] {
+  const db = getDb();
+  return db
+    .prepare(`SELECT * FROM homework_completions WHERE homeworkId = ?`)
+    .all(homeworkId) as HomeworkCompletion[];
+}
+
+export type PronAttempt = {
+  studentId: string;
+  grade: number;
+  category: "word" | "sentence" | "dialogue";
+  expected: string;
+  transcript: string;
+  score: number;
+  stars: number;
+  missedWords: string[];
+  createdAt: string;
+};
+
+export function insertPronAttempt(a: PronAttempt) {
+  const db = getDb();
+  db.prepare(
+    `INSERT INTO pronunciation_attempts
+      (studentId,grade,category,expected,transcript,score,stars,missedWords,createdAt)
+     VALUES (?,?,?,?,?,?,?,?,?)`,
+  ).run(
+    a.studentId,
+    a.grade,
+    a.category,
+    a.expected,
+    a.transcript,
+    a.score,
+    a.stars,
+    JSON.stringify(a.missedWords),
+    a.createdAt,
+  );
+}
+
+export function pronAttemptsByGrade(grade: number, limit = 500): PronAttempt[] {
+  const db = getDb();
+  const rows = db
+    .prepare(
+      `SELECT * FROM pronunciation_attempts WHERE grade = ? ORDER BY createdAt DESC LIMIT ?`,
+    )
+    .all(grade, limit) as (Omit<PronAttempt, "missedWords"> & { missedWords: string })[];
+  return rows.map((r) => ({ ...r, missedWords: safeJsonArray(r.missedWords) }));
+}
+
+function safeJsonArray(s: string): string[] {
+  try {
+    const v = JSON.parse(s);
+    return Array.isArray(v) ? v.map(String) : [];
+  } catch {
+    return [];
+  }
 }
 
 export function logError(where_at: string, message: string) {
