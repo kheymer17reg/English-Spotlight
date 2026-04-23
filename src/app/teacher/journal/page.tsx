@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { CalendarPlus, Download, FileText, Loader2, Plus, Trash2 } from "lucide-react";
+import { CalendarPlus, Download, FileText, Loader2, Plus, Trash2, UserSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,26 @@ import { Select } from "@/components/ui/select";
 import { GRADES } from "@/lib/curriculum";
 import type { Attendance, JournalEntry, JournalLesson } from "@/lib/db";
 import type { StudentRecord } from "@/types";
+import { StudentProfileDrawer } from "@/components/teacher/student-profile-drawer";
+import { cn } from "@/lib/utils";
+
+type Period = "week" | "month" | "quarter" | "all";
+
+const PERIOD_LABELS: Record<Period, string> = {
+  week: "Неделя",
+  month: "Месяц",
+  quarter: "Четверть",
+  all: "Всё время",
+};
+
+function sinceDayFor(period: Period, now = new Date()): string {
+  const d = new Date(now);
+  if (period === "week") d.setUTCDate(d.getUTCDate() - 7);
+  else if (period === "month") d.setUTCMonth(d.getUTCMonth() - 1);
+  else if (period === "quarter") d.setUTCMonth(d.getUTCMonth() - 3);
+  else d.setUTCFullYear(1970);
+  return d.toISOString().slice(0, 10);
+}
 
 const ATTENDANCE_LABEL: Record<Attendance, { short: string; title: string; tone: string }> = {
   present: { short: "•", title: "Присутствует", tone: "text-success" },
@@ -35,6 +55,9 @@ export default function TeacherJournalPage() {
   const [newDate, setNewDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [popover, setPopover] = useState<{ lessonId: string; studentId: string; rect: { top: number; left: number; width: number } } | null>(null);
   const [popComment, setPopComment] = useState("");
+  const [period, setPeriod] = useState<Period>("all");
+  const [studentQuery, setStudentQuery] = useState("");
+  const [openStudentId, setOpenStudentId] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -62,6 +85,36 @@ export default function TeacherJournalPage() {
     for (const e of entries) m.set(`${e.lessonId}|${e.studentId}`, e);
     return m;
   }, [entries]);
+
+  const sinceDay = useMemo(() => sinceDayFor(period), [period]);
+  const visibleLessons = useMemo(
+    () => lessons.filter((l) => l.date >= sinceDay),
+    [lessons, sinceDay],
+  );
+  const visibleStudents = useMemo(() => {
+    const q = studentQuery.trim().toLowerCase();
+    if (!q) return students;
+    return students.filter((s) => s.name.toLowerCase().includes(q));
+  }, [students, studentQuery]);
+
+  // Per-column (per-lesson) average + mark counts, across all students shown.
+  const columnStats = useMemo(() => {
+    const map = new Map<string, { avg: number | null; count: number; absents: number }>();
+    for (const l of visibleLessons) {
+      const nums: number[] = [];
+      let absents = 0;
+      for (const s of visibleStudents) {
+        const e = entryMap.get(`${l.id}|${s.id}`);
+        if (!e) continue;
+        if (e.attendance === "absent") absents += 1;
+        const n = Number(e.mark);
+        if (Number.isFinite(n) && n > 0) nums.push(n);
+      }
+      const avg = nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : null;
+      map.set(l.id, { avg, count: nums.length, absents });
+    }
+    return map;
+  }, [visibleLessons, visibleStudents, entryMap]);
 
   async function saveEntry(cell: Cell, patch: Partial<JournalEntry>) {
     const current = cell.entry ?? {
@@ -116,9 +169,9 @@ export default function TeacherJournalPage() {
   }
 
   function exportCsv() {
-    const header = ["Ученик", ...lessons.map((l) => `${l.date} ${l.topic}`), "Средняя"];
-    const rows = students.map((s) => {
-      const marks = lessons.map((l) => {
+    const header = ["Ученик", ...visibleLessons.map((l) => `${l.date} ${l.topic}`), "Средняя"];
+    const rows = visibleStudents.map((s) => {
+      const marks = visibleLessons.map((l) => {
         const e = entryMap.get(`${l.id}|${s.id}`);
         if (!e) return "";
         if (e.attendance === "absent") return "Н";
@@ -135,7 +188,7 @@ export default function TeacherJournalPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `journal-grade-${grade}.csv`;
+    a.download = `journal-grade-${grade}-${period}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -147,10 +200,33 @@ export default function TeacherJournalPage() {
           <h1 className="font-display text-3xl font-semibold">Электронный журнал</h1>
           <p className="text-muted-foreground">Оценки 2-5, посещаемость, комментарии — по классам и урокам</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Select value={grade} onChange={(e) => setGrade(Number(e.target.value))} className="w-36">
             {GRADES.map((g) => <option key={g} value={g}>{g} класс</option>)}
           </Select>
+          <div className="inline-flex rounded-md border border-border bg-surface p-0.5">
+            {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setPeriod(p)}
+                className={cn(
+                  "rounded px-2.5 py-1 text-xs font-medium transition-colors",
+                  period === p
+                    ? "bg-primary/15 text-primary"
+                    : "text-muted-foreground hover:bg-muted",
+                )}
+              >
+                {PERIOD_LABELS[p]}
+              </button>
+            ))}
+          </div>
+          <Input
+            placeholder="Поиск ученика…"
+            value={studentQuery}
+            onChange={(e) => setStudentQuery(e.target.value)}
+            className="w-44"
+          />
           <Button variant="outline" size="sm" onClick={exportCsv} className="gap-2">
             <Download className="h-4 w-4" /> CSV
           </Button>
@@ -212,6 +288,10 @@ export default function TeacherJournalPage() {
             <div className="px-6 py-10 text-center text-sm text-muted-foreground">
               В {grade} классе ещё нет учеников. Онбординг ученика добавит его сюда автоматически.
             </div>
+          ) : visibleLessons.length === 0 ? (
+            <div className="px-6 py-10 text-center text-sm text-muted-foreground">
+              В выбранном периоде нет уроков. Смени период или добавь урок выше.
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -220,7 +300,7 @@ export default function TeacherJournalPage() {
                     <th className="sticky left-0 z-10 bg-muted/80 px-4 py-2 backdrop-blur">
                       Ученик
                     </th>
-                    {lessons.map((l) => (
+                    {visibleLessons.map((l) => (
                       <th key={l.id} className="min-w-[120px] px-3 py-2">
                         <div className="flex items-start justify-between gap-2">
                           <div>
@@ -241,8 +321,8 @@ export default function TeacherJournalPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {students.map((s) => {
-                    const marks = lessons.map((l) => entryMap.get(`${l.id}|${s.id}`));
+                  {visibleStudents.map((s) => {
+                    const marks = visibleLessons.map((l) => entryMap.get(`${l.id}|${s.id}`));
                     const nums = marks
                       .filter((e) => e?.attendance !== "absent")
                       .map((e) => Number(e?.mark))
@@ -251,9 +331,19 @@ export default function TeacherJournalPage() {
                     return (
                       <tr key={s.id} className="border-b border-border hover:bg-muted/30">
                         <td className="sticky left-0 z-10 border-r border-border bg-surface px-4 py-2 font-medium">
-                          {s.name}
+                          <button
+                            type="button"
+                            onClick={() => setOpenStudentId(s.id)}
+                            className="group inline-flex items-center gap-1.5 text-left hover:text-primary"
+                            title="Открыть профиль"
+                          >
+                            <UserSquare className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary" />
+                            <span className="underline-offset-2 group-hover:underline">
+                              {s.name}
+                            </span>
+                          </button>
                         </td>
-                        {lessons.map((l) => {
+                        {visibleLessons.map((l) => {
                           const e = entryMap.get(`${l.id}|${s.id}`);
                           const cell: Cell = { entry: e, student: s, lesson: l };
                           const open =
@@ -306,11 +396,56 @@ export default function TeacherJournalPage() {
                     );
                   })}
                 </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-border bg-muted/40 text-xs">
+                    <td className="sticky left-0 z-10 bg-muted/70 px-4 py-2 font-semibold uppercase tracking-wide text-muted-foreground">
+                      Средняя по уроку
+                    </td>
+                    {visibleLessons.map((l) => {
+                      const st = columnStats.get(l.id);
+                      return (
+                        <td key={l.id} className="px-2 py-2 text-center">
+                          {st && st.avg !== null ? (
+                            <div>
+                              <div
+                                className={cn(
+                                  "font-mono font-semibold",
+                                  st.avg >= 4.5
+                                    ? "text-emerald-600 dark:text-emerald-300"
+                                    : st.avg >= 3.5
+                                      ? "text-primary"
+                                      : st.avg >= 2.5
+                                        ? "text-amber-600 dark:text-amber-300"
+                                        : "text-rose-600 dark:text-rose-300",
+                                )}
+                              >
+                                {st.avg.toFixed(2)}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground">
+                                {st.count} оц{st.absents > 0 ? ` · Н${st.absents}` : ""}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                    <td className="px-3 py-2 text-right text-muted-foreground">
+                      {visibleStudents.length} уч.
+                    </td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           )}
         </CardContent>
       </Card>
+
+      <StudentProfileDrawer
+        studentId={openStudentId}
+        onClose={() => setOpenStudentId(null)}
+      />
     </div>
   );
 }
