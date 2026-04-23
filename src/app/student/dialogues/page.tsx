@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { BookOpen, ChevronDown, Pause, Play, Volume2 } from "lucide-react";
+import { BookOpen, ChevronDown, Pause, Play } from "lucide-react";
+import { SpeakButton } from "@/components/audio/speak-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -162,14 +163,9 @@ function DialogueView({ d, onActivity }: { d: Dialogue; onActivity: (kind: "list
                     {name}
                   </div>
                   <div className="leading-relaxed">{l.text}</div>
-                  <button
-                    type="button"
-                    aria-label="Озвучить"
-                    onClick={() => speakLine(l.text)}
-                    className="mt-1 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
-                  >
-                    <Volume2 className="h-3 w-3" /> слушать
-                  </button>
+                  <div className="mt-1.5">
+                    <SpeakButton text={l.text} lang="en" />
+                  </div>
                 </div>
               </div>
             );

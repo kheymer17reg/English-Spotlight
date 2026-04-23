@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { BookOpen, ChevronDown } from "lucide-react";
 import { SpeakButton } from "@/components/audio/speak-button";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty";
 import { useStore } from "@/lib/store";
