@@ -96,16 +96,19 @@ export default function TeacherHome() {
           icon={BarChart3}
           tone="primary"
         />
-        <Card>
+        <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 via-surface to-accent/5">
           <CardHeader>
             <CardTitle>Шпаргалка по программе</CardTitle>
             <CardDescription>Сколько модулей в каждом классе</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-4 gap-2 text-sm">
             {counts.map((c) => (
-              <div key={c.grade} className="rounded-lg border border-border bg-muted/40 p-2 text-center">
-                <div className="text-xs text-muted-foreground">{c.grade} кл.</div>
-                <div className="text-lg font-semibold">{c.modules}</div>
+              <div
+                key={c.grade}
+                className="rounded-xl border border-border bg-surface/70 p-2.5 text-center transition-all hover:border-primary/30"
+              >
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{c.grade} кл.</div>
+                <div className="font-display text-xl font-semibold text-primary">{c.modules}</div>
               </div>
             ))}
           </CardContent>
@@ -131,27 +134,41 @@ function ToolCard({
   badge?: string;
 }) {
   const toneCls = {
-    primary: "bg-primary/10 text-primary",
-    accent: "bg-accent/10 text-accent",
-    success: "bg-success/10 text-success",
-    warning: "bg-warning/10 text-warning",
+    primary: "from-primary to-accent",
+    accent: "from-accent to-primary",
+    success: "from-emerald-500 to-teal-500",
+    warning: "from-amber-500 to-orange-500",
+  }[tone];
+  const hoverBorder = {
+    primary: "group-hover:border-primary/40",
+    accent: "group-hover:border-accent/40",
+    success: "group-hover:border-emerald-500/40",
+    warning: "group-hover:border-amber-500/40",
   }[tone];
   return (
     <Link href={href} className="group">
-      <Card className="h-full transition-all group-hover:-translate-y-0.5 group-hover:shadow-lifted">
+      <Card
+        className={`h-full border transition-all group-hover:-translate-y-0.5 group-hover:shadow-lifted ${hoverBorder}`}
+      >
         <CardContent className="p-5">
           <div className="mb-3 flex items-center justify-between">
-            <div className={`inline-flex h-9 w-9 items-center justify-center rounded-lg ${toneCls}`}>
+            <div
+              className={`inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-sm ${toneCls}`}
+            >
               <Icon className="h-4 w-4" />
             </div>
-            {badge ? <Badge variant="accent" className="text-[10px] uppercase tracking-wider">{badge}</Badge> : null}
+            {badge ? (
+              <Badge variant="accent" className="text-[10px] uppercase tracking-wider">
+                {badge}
+              </Badge>
+            ) : null}
           </div>
           <div className="flex items-center justify-between gap-2">
             <div>
               <div className="text-base font-semibold">{title}</div>
               <p className="mt-1 text-sm text-muted-foreground">{desc}</p>
             </div>
-            <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+            <ArrowRight className="h-4 w-4 flex-none text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
           </div>
         </CardContent>
       </Card>

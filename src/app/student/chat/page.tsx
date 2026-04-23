@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Mic, Send, Sparkles } from "lucide-react";
+import { BookOpen, Check, HelpCircle, Mic, Send, Sparkles, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/input";
@@ -10,11 +10,27 @@ import { useStore } from "@/lib/store";
 import type { ChatMessage, ProviderInfo } from "@/types";
 import { cn } from "@/lib/utils";
 
-const SUGGESTIONS = [
-  "Объясни разницу между Present Simple и Present Continuous",
-  "Как задать вопрос в прошедшем времени?",
-  "Проверь: He go to school every day",
-  "Дай 5 слов на тему 'еда'",
+const SUGGESTIONS: { text: string; icon: LucideIcon; hint: string }[] = [
+  {
+    text: "Объясни разницу между Present Simple и Present Continuous",
+    icon: BookOpen,
+    hint: "грамматика",
+  },
+  {
+    text: "Как задать вопрос в прошедшем времени?",
+    icon: HelpCircle,
+    hint: "вопрос",
+  },
+  {
+    text: "Проверь: He go to school every day",
+    icon: Check,
+    hint: "проверка",
+  },
+  {
+    text: "Дай 5 слов на тему «еда»",
+    icon: Sparkles,
+    hint: "лексика",
+  },
 ];
 
 export default function ChatPage() {
@@ -129,15 +145,23 @@ export default function ChatPage() {
                 <p className="mt-1 max-w-md text-sm text-muted-foreground">
                   Я знаю программу Spotlight {student?.grade ?? "2–8"} класса и отвечаю по-русски с английскими примерами.
                 </p>
-                <div className="mt-5 flex flex-wrap justify-center gap-2">
+                <div className="mt-6 grid w-full max-w-xl gap-2 sm:grid-cols-2">
                   {SUGGESTIONS.map((s) => (
                     <button
-                      key={s}
+                      key={s.text}
                       type="button"
-                      onClick={() => send(s)}
-                      className="rounded-full border border-border bg-surface px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => send(s.text)}
+                      className="group flex items-start gap-3 rounded-xl border border-border bg-surface p-3 text-left text-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-muted hover:shadow-soft"
                     >
-                      {s}
+                      <span className="grid h-8 w-8 flex-none place-items-center rounded-lg bg-gradient-to-br from-primary/15 to-accent/15 text-primary transition-colors group-hover:from-primary group-hover:to-accent group-hover:text-primary-foreground">
+                        <s.icon className="h-4 w-4" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-[10px] uppercase tracking-wide text-muted-foreground">
+                          {s.hint}
+                        </span>
+                        <span className="block text-sm font-medium">{s.text}</span>
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -164,9 +188,15 @@ export default function ChatPage() {
               ))
             )}
             {busy ? (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-primary" />
-                Lumos печатает…
+              <div className="flex items-center gap-3">
+                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-primary to-accent text-white">
+                  <Sparkles className="h-4 w-4" />
+                </div>
+                <div className="flex items-center gap-1 rounded-2xl bg-muted px-4 py-3">
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-primary [animation-delay:-0.3s]" />
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-primary [animation-delay:-0.15s]" />
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-primary" />
+                </div>
               </div>
             ) : null}
             {error ? <div className="text-sm text-destructive">{error}</div> : null}

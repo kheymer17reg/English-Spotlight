@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, ChevronRight, Lightbulb, Loader2, RefreshCw, Wand2, X } from "lucide-react";
+import { Check, ChevronRight, GraduationCap, Lightbulb, Loader2, PartyPopper, RefreshCw, Wand2, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -110,10 +110,17 @@ export default function PracticePage() {
   const reveal = (id: string) => setRevealed((r) => ({ ...r, [id]: true }));
 
   return (
-    <div className="mx-auto max-w-4xl space-y-5">
-      <div>
-        <h1 className="font-display text-3xl font-semibold">Тренировка</h1>
-        <p className="text-muted-foreground">Генерируй упражнения по текущему модулю и проверяй себя.</p>
+    <div className="mx-auto max-w-4xl space-y-6">
+      <div className="flex items-start gap-3">
+        <div className="grid h-11 w-11 flex-none place-items-center rounded-2xl bg-gradient-to-br from-primary to-accent text-white shadow-glow">
+          <GraduationCap className="h-5 w-5" />
+        </div>
+        <div>
+          <h1 className="font-display text-3xl font-semibold">Тренировка</h1>
+          <p className="text-muted-foreground">
+            Lumos сгенерирует упражнения по текущему модулю — проверяй себя и лови XP.
+          </p>
+        </div>
       </div>
 
       <Card>
@@ -182,20 +189,74 @@ export default function PracticePage() {
                 onReveal={() => reveal(it.id)}
               />
             ))}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
-              <Button variant="ghost" onClick={generate} className="gap-2">
-                <RefreshCw className="h-4 w-4" /> Новое упражнение
-              </Button>
-              {!submitted ? (
+            {submitted ? (() => {
+              const correct = ex.items.filter((it) => isCorrect(it, answers[it.id])).length;
+              const total = ex.items.length;
+              const pct = Math.round((correct / total) * 100);
+              const tone =
+                pct >= 80
+                  ? "emerald"
+                  : pct >= 50
+                    ? "amber"
+                    : "rose";
+              const toneCls =
+                tone === "emerald"
+                  ? "border-emerald-500/40 from-emerald-500/15 via-teal-500/10 to-primary/5"
+                  : tone === "amber"
+                    ? "border-amber-500/40 from-amber-500/15 via-orange-500/10 to-primary/5"
+                    : "border-rose-500/40 from-rose-500/15 via-pink-500/10 to-primary/5";
+              const iconCls =
+                tone === "emerald"
+                  ? "from-emerald-500 to-teal-500"
+                  : tone === "amber"
+                    ? "from-amber-500 to-orange-500"
+                    : "from-rose-500 to-pink-500";
+              return (
+                <div
+                  className={cn(
+                    "rounded-2xl border bg-gradient-to-r p-4",
+                    toneCls,
+                  )}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={cn(
+                          "grid h-11 w-11 flex-none place-items-center rounded-2xl bg-gradient-to-br text-white",
+                          iconCls,
+                        )}
+                      >
+                        <PartyPopper className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <div className="font-display text-lg font-semibold">
+                          {correct} / {total} — {pct}%
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {pct >= 80
+                            ? "Отлично! Берём следующее?"
+                            : pct >= 50
+                              ? "Неплохо, ошибки ушли в «Мои ошибки»."
+                              : "Повтори тему и попробуй ещё."}
+                        </div>
+                      </div>
+                    </div>
+                    <Button onClick={generate} className="gap-2">
+                      <RefreshCw className="h-4 w-4" /> Новое упражнение
+                    </Button>
+                  </div>
+                </div>
+              );
+            })() : (
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+                <Button variant="ghost" onClick={generate} className="gap-2">
+                  <RefreshCw className="h-4 w-4" /> Новое упражнение
+                </Button>
                 <Button onClick={check} className="gap-2">
                   Проверить <ChevronRight className="h-4 w-4" />
                 </Button>
-              ) : (
-                <span className="text-sm text-muted-foreground">
-                  Результат: <strong>{ex.items.filter((it) => isCorrect(it, answers[it.id])).length}</strong> / {ex.items.length}
-                </span>
-              )}
-            </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       ) : null}
@@ -219,13 +280,30 @@ function ExerciseRow({
   onReveal: () => void;
 }) {
   const correct = isCorrect(item, value);
+  const showFeedback = revealed;
   return (
-    <div className="rounded-xl border border-border bg-muted/30 p-4">
-      <div className="mb-2 flex items-center gap-2">
-        <span className="grid h-6 w-6 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-          {index}
+    <div
+      className={cn(
+        "rounded-xl border bg-muted/30 p-4 transition-colors",
+        showFeedback && correct && "border-emerald-500/40 bg-emerald-500/5",
+        showFeedback && !correct && value != null && value !== "" && "border-rose-500/40 bg-rose-500/5",
+        !showFeedback && "border-border",
+      )}
+    >
+      <div className="mb-3 flex items-start gap-2">
+        <span
+          className={cn(
+            "grid h-7 w-7 flex-none place-items-center rounded-full text-xs font-bold",
+            showFeedback && correct
+              ? "bg-emerald-500 text-white"
+              : showFeedback && value
+                ? "bg-rose-500 text-white"
+                : "bg-gradient-to-br from-primary to-accent text-white",
+          )}
+        >
+          {showFeedback && correct ? <Check className="h-3.5 w-3.5" /> : showFeedback && value ? <X className="h-3.5 w-3.5" /> : index}
         </span>
-        <div className="text-sm font-medium">{item.prompt}</div>
+        <div className="text-sm font-medium leading-relaxed">{item.prompt}</div>
       </div>
 
       {item.type === "multiple_choice" && item.options ? (
