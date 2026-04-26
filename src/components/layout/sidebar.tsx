@@ -76,6 +76,7 @@ export const studentNavSections: NavSection[] = [
       { href: "/student/homework", label: "Мои задания", icon: ClipboardList },
       { href: "/student/journal", label: "Мой журнал", icon: BookOpenCheck },
       { href: "/student/feed", label: "Лента класса", icon: Radio, badge: "NEW" },
+      { href: "/student/quiz", label: "Live-квиз", icon: Radio, badge: "NEW" },
     ],
   },
   {

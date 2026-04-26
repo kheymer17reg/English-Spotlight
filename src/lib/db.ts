@@ -219,6 +219,42 @@ export function getDb() {
     );
     CREATE INDEX IF NOT EXISTS idx_feedback_status ON feedback(status);
     CREATE INDEX IF NOT EXISTS idx_feedback_created ON feedback(createdAt);
+    CREATE TABLE IF NOT EXISTS quiz_sessions (
+      id TEXT PRIMARY KEY,
+      pin TEXT NOT NULL UNIQUE,
+      hostId TEXT NOT NULL,
+      classId TEXT,
+      grade INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      questions TEXT NOT NULL,
+      currentIdx INTEGER NOT NULL DEFAULT -1,
+      questionStartedAt TEXT,
+      status TEXT NOT NULL DEFAULT 'lobby',
+      createdAt TEXT NOT NULL,
+      finishedAt TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_quiz_sessions_host ON quiz_sessions(hostId);
+    CREATE INDEX IF NOT EXISTS idx_quiz_sessions_pin ON quiz_sessions(pin);
+    CREATE TABLE IF NOT EXISTS quiz_players (
+      sessionId TEXT NOT NULL,
+      userId TEXT NOT NULL,
+      name TEXT NOT NULL,
+      score INTEGER NOT NULL DEFAULT 0,
+      joinedAt TEXT NOT NULL,
+      PRIMARY KEY (sessionId, userId)
+    );
+    CREATE TABLE IF NOT EXISTS quiz_answers (
+      sessionId TEXT NOT NULL,
+      userId TEXT NOT NULL,
+      qIdx INTEGER NOT NULL,
+      answer TEXT NOT NULL,
+      isCorrect INTEGER NOT NULL,
+      timeMs INTEGER NOT NULL,
+      points INTEGER NOT NULL,
+      createdAt TEXT NOT NULL,
+      PRIMARY KEY (sessionId, userId, qIdx)
+    );
+    CREATE INDEX IF NOT EXISTS idx_quiz_answers_session ON quiz_answers(sessionId);
   `);
   // Lightweight migrations — add engine/azure columns if an older DB predates them.
   const pronCols = db
