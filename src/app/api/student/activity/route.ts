@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { recordActivity, type LogActivityInput } from "@/lib/activity-db";
 import { addMistake } from "@/lib/mistakes-db";
 import type { ActivityType, Grade, MistakeKind, MistakeSource } from "@/types";
-import { logError } from "@/lib/db";
+import { getDb, logError } from "@/lib/db";
+import { autoPostToAuthorClasses, recentSimilarPostExists } from "@/lib/feed-db";
+
+const STREAK_MILESTONES = new Set([3, 5, 7, 14, 21, 30, 50, 100]);
 
 const ACTIVITY_TYPES: ActivityType[] = [
   "vocab_review",
@@ -75,6 +78,12 @@ export async function POST(req: Request) {
       }
     }
 
+    // Snapshot prior level to detect level-up after the activity.
+    const beforeRow = getDb()
+      .prepare(`SELECT level FROM students WHERE id = ?`)
+      .get(body.studentId) as { level: number } | undefined;
+    const priorLevel = beforeRow?.level ?? 1;
+
     const result = recordActivity({
       studentId: body.studentId,
       activityType: body.activityType,
@@ -85,6 +94,54 @@ export async function POST(req: Request) {
       moduleNumber: body.moduleNumber,
       meta: body.meta,
     });
+
+    // Fire-and-forget feed posts on milestones. SQLite ops are sync and very fast,
+    // so it's fine to do them inline; we just swallow errors so a feed mishap
+    // never breaks the activity write itself.
+    try {
+      // Badges → one post per newly-unlocked badge.
+      for (const badgeId of result.newBadges) {
+        autoPostToAuthorClasses(body.studentId, "badge_unlocked", {
+          badgeId,
+        });
+      }
+      // Level up.
+      if (result.level > priorLevel) {
+        autoPostToAuthorClasses(body.studentId, "level_up", {
+          fromLevel: priorLevel,
+          toLevel: result.level,
+        });
+      }
+      // Streak milestones (one per day at most).
+      if (
+        STREAK_MILESTONES.has(result.streak) &&
+        !recentSimilarPostExists(body.studentId, "streak_milestone", 18 * 60 * 60)
+      ) {
+        autoPostToAuthorClasses(body.studentId, "streak_milestone", {
+          streak: result.streak,
+        });
+      }
+      // Perfect score on a sizeable exercise (avoid spamming flashcard taps).
+      if (
+        body.correct !== undefined &&
+        body.total !== undefined &&
+        body.total >= 5 &&
+        body.correct === body.total &&
+        (body.activityType === "exercise" ||
+          body.activityType === "homework" ||
+          body.activityType === "game") &&
+        !recentSimilarPostExists(body.studentId, "perfect_score", 30 * 60)
+      ) {
+        autoPostToAuthorClasses(body.studentId, "perfect_score", {
+          activityType: body.activityType,
+          total: body.total,
+          skill: body.skill ?? null,
+          moduleNumber: body.moduleNumber ?? null,
+        });
+      }
+    } catch (feedErr) {
+      await logError("/api/student/activity:feed", String(feedErr));
+    }
 
     return NextResponse.json({
       ok: true,

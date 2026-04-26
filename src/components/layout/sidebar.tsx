@@ -16,6 +16,7 @@ import {
   MessagesSquare,
   Mic,
   Mic2,
+  Radio,
   Sparkles,
   Target,
   Trophy,
@@ -73,6 +74,7 @@ export const studentNavSections: NavSection[] = [
       { href: "/student/classes", label: "Мои классы", icon: GraduationCap },
       { href: "/student/homework", label: "Мои задания", icon: ClipboardList },
       { href: "/student/journal", label: "Мой журнал", icon: BookOpenCheck },
+      { href: "/student/feed", label: "Лента класса", icon: Radio, badge: "NEW" },
     ],
   },
   {
