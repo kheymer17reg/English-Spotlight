@@ -1,19 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   BookOpen,
+  CheckCircle2,
+  ClipboardList,
   Flame,
   Gamepad2,
   GraduationCap,
+  Headphones,
   MessagesSquare,
   Mic2,
   Sparkles,
   Target,
   Trophy,
+  Users,
   Zap,
   type LucideIcon,
 } from "lucide-react";
@@ -26,13 +30,61 @@ import { cn } from "@/lib/utils";
 
 const XP_PER_LEVEL = 200;
 
+type DailyKey = "vocab" | "practice" | "reading" | "pair" | "pronunciation";
+
+type TodayResponse = {
+  pendingHomework: {
+    id: string;
+    title: string;
+    dueDate: string | null;
+    resourceType: string;
+  }[];
+  done: Record<DailyKey, boolean>;
+  todayXp: number;
+};
+
+type DailyTask = {
+  key: DailyKey;
+  href: string;
+  icon: LucideIcon;
+  title: string;
+  hint: string;
+};
+
+const DAILY_TASKS: DailyTask[] = [
+  { key: "vocab", href: "/student/vocabulary", icon: BookOpen, title: "5 слов", hint: "Карточки словаря" },
+  { key: "practice", href: "/student/practice", icon: GraduationCap, title: "Упражнение", hint: "Тренировка дня" },
+  { key: "reading", href: "/student/reading", icon: Headphones, title: "Текст", hint: "Чтение по уровню" },
+  { key: "pair", href: "/student/pair", icon: Users, title: "Диалог", hint: "Парный роль-плей" },
+  { key: "pronunciation", href: "/student/pronunciation", icon: Mic2, title: "Голос", hint: "Произношение слова" },
+];
+
 export default function StudentHomePage() {
   const router = useRouter();
   const student = useStore((s) => s.student);
+  const [today, setToday] = useState<TodayResponse | null>(null);
 
   useEffect(() => {
     if (student === null) router.replace("/");
   }, [student, router]);
+
+  useEffect(() => {
+    if (!student) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const r = await fetch("/api/student/today", { cache: "no-store" });
+        if (!r.ok) return;
+        const data = (await r.json()) as TodayResponse;
+        if (!cancelled) setToday(data);
+      } catch {
+        // soft-fail; widget shows defaults
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [student]);
 
   const modules = useMemo(() => (student ? modulesByGrade(student.grade) : []), [student]);
   if (!student) return null;
@@ -40,6 +92,11 @@ export default function StudentHomePage() {
   const levelXp = student.xp % XP_PER_LEVEL;
   const xpToNext = XP_PER_LEVEL - levelXp;
   const pct = Math.round((levelXp / XP_PER_LEVEL) * 100);
+
+  const doneCount = today
+    ? DAILY_TASKS.reduce((acc, t) => acc + (today.done[t.key] ? 1 : 0), 0)
+    : 0;
+  const dailyPct = Math.round((doneCount / DAILY_TASKS.length) * 100);
 
   return (
     <div className="space-y-6">
@@ -94,6 +151,104 @@ export default function StudentHomePage() {
           </div>
         </div>
       </div>
+
+      {/* Сегодня — основной операционный блок */}
+      <Card className="overflow-hidden">
+        <CardHeader>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5 text-primary" /> Сегодня к выполнению
+              </CardTitle>
+              <CardDescription>
+                {today
+                  ? doneCount === DAILY_TASKS.length
+                    ? "Все цели дня выполнены — можно переходить к челленджам."
+                    : `Сделано ${doneCount} из ${DAILY_TASKS.length}. ${today.todayXp} XP за сегодня.`
+                  : "Загружаю прогресс…"}
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="hidden h-2.5 w-40 overflow-hidden rounded-full bg-muted sm:block">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-primary to-accent transition-all"
+                  style={{ width: `${dailyPct}%` }}
+                />
+              </div>
+              <span className="text-sm tabular-nums text-muted-foreground">{dailyPct}%</span>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+            {DAILY_TASKS.map((task) => {
+              const isDone = today?.done[task.key] ?? false;
+              const Icon = task.icon;
+              return (
+                <Link
+                  key={task.key}
+                  href={task.href}
+                  className={cn(
+                    "group relative flex items-center gap-3 rounded-xl border p-3 transition-all hover:-translate-y-0.5 hover:shadow-soft",
+                    isDone
+                      ? "border-emerald-500/30 bg-emerald-500/5"
+                      : "border-border bg-surface hover:border-primary/30",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "grid h-9 w-9 flex-none place-items-center rounded-lg",
+                      isDone ? "bg-emerald-500 text-white" : "bg-primary/10 text-primary",
+                    )}
+                  >
+                    {isDone ? (
+                      <CheckCircle2 className="h-5 w-5" />
+                    ) : (
+                      <Icon className="h-4 w-4" />
+                    )}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold">{task.title}</div>
+                    <div className="text-xs text-muted-foreground">{task.hint}</div>
+                  </div>
+                  <ArrowRight
+                    className={cn(
+                      "h-4 w-4 flex-none transition-transform group-hover:translate-x-0.5",
+                      isDone ? "text-emerald-600/70" : "text-muted-foreground",
+                    )}
+                  />
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Pending homework — only render if there is anything */}
+          {today && today.pendingHomework.length > 0 ? (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3">
+              <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-amber-700 dark:text-amber-400">
+                <ClipboardList className="h-4 w-4" /> Несданные задания ({today.pendingHomework.length})
+              </div>
+              <ul className="space-y-1.5">
+                {today.pendingHomework.map((hw) => (
+                  <li key={hw.id}>
+                    <Link
+                      href="/student/homework"
+                      className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-amber-500/10"
+                    >
+                      <span className="truncate font-medium">{hw.title}</span>
+                      {hw.dueDate ? (
+                        <span className="flex-none text-xs text-muted-foreground">
+                          до {new Date(hw.dueDate).toLocaleDateString("ru-RU")}
+                        </span>
+                      ) : null}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-5 lg:grid-cols-3">
         <Card className="overflow-hidden lg:col-span-2">
@@ -159,57 +314,55 @@ export default function StudentHomePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Задания дня</CardTitle>
-            <CardDescription>6 коротких челленджей для разогрева</CardDescription>
+            <CardTitle>Челленджи и достижения</CardTitle>
+            <CardDescription>Где ты сейчас в общем рейтинге</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {[
-              "10 слов в карточках",
-              "Короткий чат с Lumos",
-              "Упражнение на грамматику",
-              "Текст A2 для чтения",
-              "5 вопросов в квизе",
-              "Повторить ошибки",
-            ].map((c, i) => {
-              const done = i < 2;
-              return (
-                <div
-                  key={c}
-                  className={cn(
-                    "flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm transition-colors",
-                    done
-                      ? "border-emerald-500/25 bg-emerald-500/5"
-                      : "border-border bg-surface hover:bg-muted/40",
-                  )}
-                >
-                  <span className="flex items-center gap-2.5">
-                    <span
-                      className={cn(
-                        "grid h-6 w-6 flex-none place-items-center rounded-full text-[10px] font-bold",
-                        done
-                          ? "bg-emerald-500 text-white"
-                          : "bg-muted text-muted-foreground",
-                      )}
-                    >
-                      {done ? "✓" : i + 1}
-                    </span>
-                    <span className={done ? "line-through decoration-emerald-500/50" : ""}>{c}</span>
-                  </span>
-                  {done ? (
-                    <Badge variant="success" className="h-5 text-[10px]">
-                      сделано
-                    </Badge>
-                  ) : (
-                    <Link
-                      href="/student/challenges"
-                      className="text-muted-foreground transition-colors hover:text-primary"
-                    >
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  )}
+          <CardContent className="space-y-3">
+            <Link
+              href="/student/league"
+              className="flex items-center justify-between rounded-xl border border-border bg-gradient-to-br from-amber-500/10 to-orange-500/5 p-3 transition-colors hover:border-amber-500/30"
+            >
+              <div className="flex items-center gap-3">
+                <span className="grid h-9 w-9 place-items-center rounded-lg bg-amber-500/15 text-amber-600">
+                  <Trophy className="h-4 w-4" />
+                </span>
+                <div>
+                  <div className="text-sm font-semibold">Лига класса</div>
+                  <div className="text-xs text-muted-foreground">XP за неделю</div>
                 </div>
-              );
-            })}
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+            </Link>
+            <Link
+              href="/student/challenges"
+              className="flex items-center justify-between rounded-xl border border-border bg-gradient-to-br from-fuchsia-500/10 to-pink-500/5 p-3 transition-colors hover:border-fuchsia-500/30"
+            >
+              <div className="flex items-center gap-3">
+                <span className="grid h-9 w-9 place-items-center rounded-lg bg-fuchsia-500/15 text-fuchsia-600">
+                  <Sparkles className="h-4 w-4" />
+                </span>
+                <div>
+                  <div className="text-sm font-semibold">Челленджи</div>
+                  <div className="text-xs text-muted-foreground">Длинные цели и бейджи</div>
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+            </Link>
+            <Link
+              href="/student/feed"
+              className="flex items-center justify-between rounded-xl border border-border bg-gradient-to-br from-sky-500/10 to-blue-500/5 p-3 transition-colors hover:border-sky-500/30"
+            >
+              <div className="flex items-center gap-3">
+                <span className="grid h-9 w-9 place-items-center rounded-lg bg-sky-500/15 text-sky-600">
+                  <Zap className="h-4 w-4" />
+                </span>
+                <div>
+                  <div className="text-sm font-semibold">Лента класса</div>
+                  <div className="text-xs text-muted-foreground">Что делают одноклассники</div>
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+            </Link>
           </CardContent>
         </Card>
       </div>
@@ -254,12 +407,9 @@ function QuickLink({
       className="group flex items-center justify-between rounded-xl border border-border bg-muted/40 p-3 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-muted hover:shadow-soft"
     >
       <span className="flex items-center gap-2 text-sm font-medium">
-        <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-primary/15 to-accent/15 text-primary transition-colors group-hover:from-primary group-hover:to-accent group-hover:text-primary-foreground">
-          <Icon className="h-4 w-4" />
-        </span>
-        {title}
+        <Icon className="h-4 w-4 text-primary" /> {title}
       </span>
-      <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+      <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
     </Link>
   );
 }

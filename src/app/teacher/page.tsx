@@ -1,15 +1,67 @@
+"use client";
+
 import Link from "next/link";
-import { ArrowRight, BarChart3, BookOpenCheck, ClipboardCheck, Compass, FileText, Palette, Sparkles, Users, Wand2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  BarChart3,
+  BookOpenCheck,
+  CalendarClock,
+  ClipboardCheck,
+  Compass,
+  FileText,
+  Inbox,
+  MessageSquareWarning,
+  Palette,
+  Sparkles,
+  UserMinus,
+  Users,
+  Wand2,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CURRICULUM, GRADES } from "@/lib/curriculum";
+import { cn } from "@/lib/utils";
+
+type AlertsResponse = {
+  overdueHomework: { id: string; title: string; grade: number; dueDate: string; pending: number }[];
+  newFeedback: number;
+  tomorrowLessons: { id: string; grade: number; topic: string; module: number }[];
+  inactiveStudents: { id: string; name: string; grade: number }[];
+};
 
 export default function TeacherHome() {
+  const [alerts, setAlerts] = useState<AlertsResponse | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const r = await fetch("/api/teacher/alerts", { cache: "no-store" });
+        if (!r.ok) return;
+        const data = (await r.json()) as AlertsResponse;
+        if (!cancelled) setAlerts(data);
+      } catch {
+        // soft-fail; surface defaults
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const counts = GRADES.map((g) => ({
     grade: g,
     modules: CURRICULUM.filter((m) => m.grade === g).length,
   }));
+
+  const overdueCount = alerts?.overdueHomework.reduce((acc, h) => acc + h.pending, 0) ?? 0;
+  const tomorrowCount = alerts?.tomorrowLessons.length ?? 0;
+  const feedbackCount = alerts?.newFeedback ?? 0;
+  const inactiveCount = alerts?.inactiveStudents.length ?? 0;
+  const anyAlert = overdueCount + tomorrowCount + feedbackCount + inactiveCount > 0;
 
   return (
     <div className="space-y-6">
@@ -44,6 +96,157 @@ export default function TeacherHome() {
         </div>
       </div>
 
+      {/* Alerts dashboard */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <AlertCard
+          tone="warning"
+          icon={ClipboardCheck}
+          title="Несдано ДЗ"
+          value={overdueCount}
+          hint={overdueCount > 0 ? "Учеников с просрочкой" : "Всё сдано вовремя"}
+          href="/teacher/homework"
+          loading={!alerts}
+        />
+        <AlertCard
+          tone="primary"
+          icon={CalendarClock}
+          title="Уроков завтра"
+          value={tomorrowCount}
+          hint={tomorrowCount > 0 ? "Запланировано в журнале" : "На завтра ничего не запланировано"}
+          href="/teacher/lessons"
+          loading={!alerts}
+        />
+        <AlertCard
+          tone="rose"
+          icon={MessageSquareWarning}
+          title="Новый feedback"
+          value={feedbackCount}
+          hint={feedbackCount > 0 ? "Не прочитано" : "Все ответы просмотрены"}
+          href="/teacher/feedback"
+          loading={!alerts}
+        />
+        <AlertCard
+          tone="muted"
+          icon={UserMinus}
+          title="Без активности 7д"
+          value={inactiveCount}
+          hint={inactiveCount > 0 ? "Учеников отстают" : "Все ученики работают регулярно"}
+          href="/teacher/students"
+          loading={!alerts}
+        />
+      </div>
+
+      {/* Alerts detail — only render if there is real data */}
+      {anyAlert ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {(alerts?.overdueHomework.length ?? 0) > 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-500" /> Просроченные задания
+                </CardTitle>
+                <CardDescription>Кликни — откроется страница ДЗ</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-1.5">
+                {alerts!.overdueHomework.map((h) => (
+                  <Link
+                    key={h.id}
+                    href="/teacher/homework"
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:border-amber-500/40 hover:bg-amber-500/5"
+                  >
+                    <span className="min-w-0 flex-1 truncate">
+                      <span className="text-xs text-muted-foreground">{h.grade} кл.</span>{" "}
+                      <span className="font-medium">{h.title}</span>
+                    </span>
+                    <Badge variant="warning" className="flex-none">
+                      {h.pending}
+                    </Badge>
+                  </Link>
+                ))}
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {(alerts?.tomorrowLessons.length ?? 0) > 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CalendarClock className="h-4 w-4 text-primary" /> Уроки завтра
+                </CardTitle>
+                <CardDescription>Готовы планы?</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-1.5">
+                {alerts!.tomorrowLessons.map((l) => (
+                  <Link
+                    key={l.id}
+                    href="/teacher/journal"
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:border-primary/40 hover:bg-primary/5"
+                  >
+                    <span className="min-w-0 flex-1 truncate">
+                      <span className="text-xs text-muted-foreground">
+                        {l.grade} кл. · модуль {l.module}
+                      </span>{" "}
+                      <span className="font-medium">{l.topic}</span>
+                    </span>
+                    <ArrowRight className="h-4 w-4 flex-none text-muted-foreground" />
+                  </Link>
+                ))}
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {(alerts?.inactiveStudents.length ?? 0) > 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <UserMinus className="h-4 w-4 text-muted-foreground" /> Не были на платформе
+                </CardTitle>
+                <CardDescription>Никакой активности 7+ дней</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-1.5">
+                {alerts!.inactiveStudents.map((s) => (
+                  <Link
+                    key={s.id}
+                    href="/teacher/students"
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:border-rose-500/40 hover:bg-rose-500/5"
+                  >
+                    <span className="min-w-0 flex-1 truncate">
+                      <span className="text-xs text-muted-foreground">{s.grade} кл.</span>{" "}
+                      <span className="font-medium">{s.name}</span>
+                    </span>
+                    <ArrowRight className="h-4 w-4 flex-none text-muted-foreground" />
+                  </Link>
+                ))}
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {feedbackCount > 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Inbox className="h-4 w-4 text-rose-500" /> Новый feedback
+                </CardTitle>
+                <CardDescription>Учеников и родителей</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link
+                  href="/teacher/feedback"
+                  className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:border-rose-500/40 hover:bg-rose-500/5"
+                >
+                  <span>
+                    <span className="font-semibold">{feedbackCount}</span>{" "}
+                    {pluralize(feedbackCount, ["сообщение", "сообщения", "сообщений"])} ждут ответа
+                  </span>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                </Link>
+              </CardContent>
+            </Card>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* Tools grid */}
       <div className="grid gap-4 md:grid-cols-3">
         <ToolCard
           href="/teacher/generate"
@@ -58,15 +261,13 @@ export default function TeacherHome() {
           desc="Оценки 2-5, посещаемость, комментарии. Экспорт CSV."
           icon={BookOpenCheck}
           tone="success"
-          badge="NEW"
         />
         <ToolCard
           href="/teacher/board"
           title="Онлайн-доска"
-          desc="Ручка, фигуры, стикеры. Сохранение и PNG-экспорт."
+          desc="tldraw: бесконечный холст, фигуры, стикеры, PNG."
           icon={Palette}
           tone="accent"
-          badge="NEW"
         />
         <ToolCard
           href="/teacher/tests"
@@ -102,7 +303,6 @@ export default function TeacherHome() {
           desc="30+ проверенных сайтов: аудио, игры, видео, экзамены."
           icon={Compass}
           tone="accent"
-          badge="NEW"
         />
         <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 via-surface to-accent/5">
           <CardHeader>
@@ -123,6 +323,82 @@ export default function TeacherHome() {
         </Card>
       </div>
     </div>
+  );
+}
+
+function pluralize(n: number, forms: [string, string, string]): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return forms[0];
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return forms[1];
+  return forms[2];
+}
+
+function AlertCard({
+  tone,
+  icon: Icon,
+  title,
+  value,
+  hint,
+  href,
+  loading,
+}: {
+  tone: "warning" | "primary" | "rose" | "muted";
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  value: number;
+  hint: string;
+  href: string;
+  loading: boolean;
+}) {
+  const isAlert = !loading && value > 0;
+  const tones: Record<typeof tone, { wrapper: string; iconBg: string; valueColor: string }> = {
+    warning: {
+      wrapper: "border-amber-500/30 bg-amber-500/5 hover:border-amber-500/60",
+      iconBg: "bg-amber-500/15 text-amber-600",
+      valueColor: "text-amber-600",
+    },
+    primary: {
+      wrapper: "border-primary/30 bg-primary/5 hover:border-primary/60",
+      iconBg: "bg-primary/15 text-primary",
+      valueColor: "text-primary",
+    },
+    rose: {
+      wrapper: "border-rose-500/30 bg-rose-500/5 hover:border-rose-500/60",
+      iconBg: "bg-rose-500/15 text-rose-600",
+      valueColor: "text-rose-600",
+    },
+    muted: {
+      wrapper: "border-border bg-muted/40 hover:border-muted-foreground/30",
+      iconBg: "bg-muted text-muted-foreground",
+      valueColor: "text-foreground",
+    },
+  };
+  const t = tones[tone];
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "group relative flex items-center gap-3 rounded-xl border p-4 transition-all hover:-translate-y-0.5",
+        isAlert ? t.wrapper : "border-border bg-surface hover:border-primary/30",
+      )}
+    >
+      <span className={cn("grid h-10 w-10 flex-none place-items-center rounded-lg", t.iconBg)}>
+        <Icon className="h-5 w-5" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="text-xs uppercase tracking-wide text-muted-foreground">{title}</div>
+        <div
+          className={cn(
+            "font-display text-2xl font-semibold tabular-nums",
+            isAlert ? t.valueColor : "text-foreground",
+          )}
+        >
+          {loading ? "…" : value}
+        </div>
+        <div className="line-clamp-1 text-xs text-muted-foreground">{hint}</div>
+      </div>
+    </Link>
   );
 }
 
