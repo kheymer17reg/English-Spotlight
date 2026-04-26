@@ -264,6 +264,26 @@ export function getDb() {
       createdAt TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(userId);
+    CREATE TABLE IF NOT EXISTS photo_homework (
+      id TEXT PRIMARY KEY,
+      studentId TEXT NOT NULL,
+      classId TEXT,
+      homeworkId TEXT,
+      title TEXT,
+      comment TEXT,
+      imageData TEXT NOT NULL,
+      mime TEXT NOT NULL,
+      ocrText TEXT,
+      aiFeedback TEXT,
+      aiSuggestedGrade INTEGER,
+      teacherGrade INTEGER,
+      teacherComment TEXT,
+      status TEXT NOT NULL DEFAULT 'submitted',
+      createdAt TEXT NOT NULL,
+      gradedAt TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_photo_hw_student ON photo_homework(studentId);
+    CREATE INDEX IF NOT EXISTS idx_photo_hw_class ON photo_homework(classId);
   `);
   // Lightweight migrations — add engine/azure columns if an older DB predates them.
   const pronCols = db

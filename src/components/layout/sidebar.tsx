@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   BookOpen,
   BookOpenCheck,
+  Camera,
   ClipboardList,
   Compass,
   Flame,
@@ -76,6 +77,7 @@ export const studentNavSections: NavSection[] = [
     items: [
       { href: "/student/classes", label: "Мои классы", icon: GraduationCap },
       { href: "/student/homework", label: "Мои задания", icon: ClipboardList },
+      { href: "/student/homework/photo", label: "Фото-домашка", icon: Camera, badge: "AI" },
       { href: "/student/journal", label: "Мой журнал", icon: BookOpenCheck },
       { href: "/student/feed", label: "Лента класса", icon: Radio, badge: "NEW" },
       { href: "/student/quiz", label: "Live-квиз", icon: Radio, badge: "NEW" },
