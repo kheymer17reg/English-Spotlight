@@ -81,6 +81,7 @@ export const studentNavSections: NavSection[] = [
       { href: "/student/journal", label: "Мой журнал", icon: BookOpenCheck },
       { href: "/student/feed", label: "Лента класса", icon: Radio, badge: "NEW" },
       { href: "/student/quiz", label: "Live-квиз", icon: Radio, badge: "NEW" },
+      { href: "/student/stories", label: "Сюжетки", icon: BookOpen, badge: "NEW" },
     ],
   },
   {

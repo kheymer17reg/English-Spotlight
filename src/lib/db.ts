@@ -284,6 +284,17 @@ export function getDb() {
     );
     CREATE INDEX IF NOT EXISTS idx_photo_hw_student ON photo_homework(studentId);
     CREATE INDEX IF NOT EXISTS idx_photo_hw_class ON photo_homework(classId);
+    CREATE TABLE IF NOT EXISTS story_progress (
+      studentId TEXT NOT NULL,
+      storyId TEXT NOT NULL,
+      sceneIndex INTEGER NOT NULL DEFAULT 0,
+      correct INTEGER NOT NULL DEFAULT 0,
+      total INTEGER NOT NULL DEFAULT 0,
+      finishedAt TEXT,
+      updatedAt TEXT NOT NULL,
+      PRIMARY KEY (studentId, storyId)
+    );
+    CREATE INDEX IF NOT EXISTS idx_story_progress_student ON story_progress(studentId);
   `);
   // Lightweight migrations — add engine/azure columns if an older DB predates them.
   const pronCols = db

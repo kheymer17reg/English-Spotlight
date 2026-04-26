@@ -201,6 +201,7 @@ export type ActivityType =
   | "listening"
   | "game"
   | "chat"
+  | "story"
   | "mistake_review";
 
 export interface ActivityRecord {
