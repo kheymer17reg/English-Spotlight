@@ -34,11 +34,11 @@ interface ClassRecord {
 const REACTION_EMOJIS: FeedReactionEmoji[] = ["👍", "🔥", "💪", "⭐", "🎉"];
 
 const KIND_META: Record<FeedPostKind, { icon: typeof Sparkles; tone: string; label: string }> = {
-  lesson_done: { icon: GraduationCap, tone: "bg-sky-500/10 text-sky-600", label: "урок" },
-  badge_unlocked: { icon: Award, tone: "bg-amber-500/10 text-amber-600", label: "ачивка" },
-  streak_milestone: { icon: Flame, tone: "bg-orange-500/10 text-orange-600", label: "стрик" },
-  level_up: { icon: Star, tone: "bg-violet-500/10 text-violet-600", label: "уровень" },
-  perfect_score: { icon: Target, tone: "bg-emerald-500/10 text-emerald-600", label: "топ" },
+  lesson_done: { icon: GraduationCap, tone: "bg-sky-500/15 text-sky-700 dark:bg-sky-400/15 dark:text-sky-300", label: "урок" },
+  badge_unlocked: { icon: Award, tone: "bg-amber-500/15 text-amber-700 dark:bg-amber-400/15 dark:text-amber-300", label: "ачивка" },
+  streak_milestone: { icon: Flame, tone: "bg-orange-500/15 text-orange-700 dark:bg-orange-400/15 dark:text-orange-300", label: "стрик" },
+  level_up: { icon: Star, tone: "bg-violet-500/15 text-violet-700 dark:bg-violet-400/15 dark:text-violet-300", label: "уровень" },
+  perfect_score: { icon: Target, tone: "bg-emerald-500/15 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300", label: "топ" },
   vocab_milestone: { icon: Sparkles, tone: "bg-primary/10 text-primary", label: "словарь" },
   teacher_note: { icon: Sparkles, tone: "bg-primary/10 text-primary", label: "учитель" },
 };

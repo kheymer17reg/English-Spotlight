@@ -55,7 +55,7 @@
     --surface-foreground: 210 20% 96%;
 
     --muted: 222 16% 17%;
-    --muted-foreground: 220 10% 66%;
+    --muted-foreground: 220 14% 74%;
 
     --card: 222 22% 11%;
     --card-foreground: 210 20% 96%;
@@ -81,7 +81,7 @@
     --destructive: 0 70% 60%;
     --destructive-foreground: 222 31% 8%;
 
-    --border: 222 16% 20%;
+    --border: 222 16% 26%;
     --ring: 173 72% 50%;
   }
 

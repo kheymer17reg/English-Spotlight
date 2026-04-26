@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Crown, Loader2, Medal, Sparkles, Trophy } from "lucide-react";
+import { FunNavStrip } from "@/components/student/fun-nav";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useStore } from "@/lib/store";
@@ -35,12 +36,7 @@ export default function LeaguePage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <div>
-        <h1 className="font-display text-3xl font-semibold">Лига недели</h1>
-        <p className="text-muted-foreground">
-          Рейтинг по XP за эту неделю. Сброс в понедельник.
-        </p>
-      </div>
+      <FunNavStrip current="league" icon={<Trophy className="h-5 w-5" />} title="Лига недели" subtitle="Рейтинг по XP за эту неделю — сброс в понедельник." />
 
       {loading || !data ? (
         <Card>

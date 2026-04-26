@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ArrowRight, CheckCircle2, Flame, Sparkles, Target } from "lucide-react";
+import { FunNavStrip } from "@/components/student/fun-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,10 +37,7 @@ export default function ChallengesPage() {
   if (!student) return null;
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <div>
-        <h1 className="font-display text-3xl font-semibold">Задания дня</h1>
-        <p className="text-muted-foreground">Короткие активности, которые держат стрик и прокачивают уровень</p>
-      </div>
+      <FunNavStrip current="challenges" icon={<Target className="h-5 w-5" />} title="Задания дня" subtitle="Короткие активности, которые держат стрик и прокачивают уровень." />
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="md:col-span-2">

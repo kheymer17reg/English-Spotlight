@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, Flame, Keyboard, PartyPopper, RefreshCw, Shuffle, Sparkles, Trophy, X } from "lucide-react";
+import { Check, Flame, Gamepad2, Keyboard, PartyPopper, RefreshCw, Shuffle, Sparkles, Trophy, X } from "lucide-react";
+import { FunNavStrip } from "@/components/student/fun-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,12 +28,7 @@ export default function GamesPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-5">
-      <div className="flex flex-col gap-1">
-        <h1 className="font-display text-3xl font-semibold">Игровой зал</h1>
-        <p className="text-muted-foreground">
-          Короткие раунды на словарь. Побеждают быстрые и внимательные — XP капает за каждую правильную пару.
-        </p>
-      </div>
+      <FunNavStrip current="games" icon={<Gamepad2 className="h-5 w-5" />} title="Игровой зал" subtitle="Короткие раунды на словарь — XP капает за каждую правильную пару." />
       <StudentHud />
       <Tabs defaultValue="match">
         <TabsList>
