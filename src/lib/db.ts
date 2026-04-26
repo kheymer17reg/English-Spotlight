@@ -241,6 +241,8 @@ export function getDb() {
 }
 
 // ───────────────── Users / Auth ─────────────────
+export type UserRole = "teacher" | "student" | "parent";
+
 export type UserRecord = {
   id: string;
   email: string | null;
@@ -248,7 +250,7 @@ export type UserRecord = {
   passwordHash: string | null;
   name: string | null;
   image: string | null;
-  role: "teacher" | "student";
+  role: UserRole;
   grade: number | null;
   studentId: string | null;
   provider: string | null;

@@ -9,13 +9,14 @@ export async function POST(req: Request) {
     email?: string;
     password?: string;
     name?: string;
-    role?: "teacher" | "student";
+    role?: "teacher" | "student" | "parent";
     grade?: number;
   };
   const email = (body.email ?? "").trim().toLowerCase();
   const password = body.password ?? "";
   const name = (body.name ?? "").trim() || null;
-  const role = body.role === "teacher" ? "teacher" : "student";
+  const role: "teacher" | "student" | "parent" =
+    body.role === "teacher" ? "teacher" : body.role === "parent" ? "parent" : "student";
   const grade = typeof body.grade === "number" && body.grade > 0 ? body.grade : null;
 
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {

@@ -27,7 +27,12 @@ export function UserMenu({ compact = false }: { compact?: boolean }) {
     );
   }
 
-  const roleLabel = data.user.role === "teacher" ? "Учитель" : "Ученик";
+  const roleLabel =
+    data.user.role === "teacher"
+      ? "Учитель"
+      : data.user.role === "parent"
+      ? "Родитель"
+      : "Ученик";
 
   return (
     <div className="space-y-2">

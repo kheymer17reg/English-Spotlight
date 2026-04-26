@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { useStore } from "@/lib/store";
+import { ParentLinkCard } from "@/components/parent/parent-link-card";
 import type { Grade } from "@/types";
 
 export default function ProfilePage() {
@@ -59,6 +60,8 @@ export default function ProfilePage() {
           </div>
         </CardContent>
       </Card>
+
+      <ParentLinkCard />
 
       <Card>
         <CardHeader>

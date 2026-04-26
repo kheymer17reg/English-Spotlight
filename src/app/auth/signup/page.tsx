@@ -25,7 +25,7 @@ function SignUpForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [role, setRole] = useState<"student" | "teacher">("student");
+  const [role, setRole] = useState<"student" | "teacher" | "parent">("student");
   const [grade, setGrade] = useState<number>(5);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -109,9 +109,13 @@ function SignUpForm() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">Роль</label>
-                <Select value={role} onChange={(e) => setRole(e.target.value as "student" | "teacher")}>
+                <Select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value as "student" | "teacher" | "parent")}
+                >
                   <option value="student">Ученик</option>
                   <option value="teacher">Учитель</option>
+                  <option value="parent">Родитель</option>
                 </Select>
               </div>
               {role === "student" ? (

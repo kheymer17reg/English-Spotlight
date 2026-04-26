@@ -12,16 +12,19 @@ import { MobileDrawer } from "@/components/layout/mobile-drawer";
 import { studentNavSections } from "@/components/layout/sidebar";
 import { teacherNavItems } from "@/components/layout/teacher-sidebar";
 
-export function Topbar({ role }: { role: "student" | "teacher" }) {
+export function Topbar({ role }: { role: "student" | "teacher" | "parent" }) {
   const pathname = usePathname();
   const student = useStore((s) => s.student);
-  const other = role === "student" ? "/teacher" : "/";
-  const otherLabel = role === "student" ? "Кабинет учителя" : "На главную";
+  const other = role === "student" ? "/teacher" : role === "teacher" ? "/" : "/student";
+  const otherLabel =
+    role === "student" ? "Кабинет учителя" : role === "teacher" ? "На главную" : "К ученику";
   const title = pathname === "/student" ? "Добро пожаловать" : undefined;
   const drawerSections =
     role === "student"
       ? studentNavSections
-      : [{ title: undefined, items: teacherNavItems }];
+      : role === "teacher"
+      ? [{ title: undefined, items: teacherNavItems }]
+      : [];
 
   return (
     <header className="sticky top-0 z-30 border-b border-border/80 bg-surface/70 backdrop-blur-md">

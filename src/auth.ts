@@ -8,11 +8,11 @@ declare module "next-auth" {
   interface Session {
     user: {
       id: string;
-      role: "teacher" | "student";
+      role: "teacher" | "student" | "parent";
     } & DefaultSession["user"];
   }
   interface User {
-    role?: "teacher" | "student";
+    role?: "teacher" | "student" | "parent";
   }
 }
 
@@ -93,7 +93,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = (user as { role?: "teacher" | "student" }).role ?? "student";
+        token.role = (user as { role?: "teacher" | "student" | "parent" }).role ?? "student";
       }
       if (!token.id && token.email) {
         const u = findUserByEmail(token.email);
@@ -110,7 +110,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async session({ session, token }) {
       if (token.id) session.user.id = String(token.id);
-      session.user.role = ((token as { role?: "teacher" | "student" }).role) ?? "student";
+      session.user.role =
+        ((token as { role?: "teacher" | "student" | "parent" }).role) ?? "student";
       return session;
     },
   },
