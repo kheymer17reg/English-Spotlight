@@ -8,7 +8,6 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Award, Flame, GraduationCap, Loader2, Sparkles, Star, Target } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty";
 import { cn } from "@/lib/utils";
@@ -68,6 +67,13 @@ function formatPostText(post: FeedPost): string {
     default:
       return "сделал что-то крутое";
   }
+}
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
 function relativeTime(iso: string): string {
@@ -294,65 +300,115 @@ export default function FeedPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
-          {posts.map((post) => {
-            const meta = KIND_META[post.kind];
-            const Icon = meta.icon;
+        <>
+          {/* Stories-style strip: top peers from today's activity */}
+          {(() => {
+            const today = new Date().toISOString().slice(0, 10);
+            const todayMap = new Map<string, { name: string; grade: number | null; kinds: Set<FeedPostKind> }>();
+            for (const p of posts) {
+              if (p.createdAt.slice(0, 10) !== today) continue;
+              const cur = todayMap.get(p.authorId) ?? { name: p.authorName, grade: p.authorGrade, kinds: new Set() };
+              cur.kinds.add(p.kind);
+              todayMap.set(p.authorId, cur);
+            }
+            const stories = [...todayMap.entries()].slice(0, 12);
+            if (stories.length === 0) return null;
             return (
-              <Card key={post.id} className="overflow-hidden">
-                <CardContent className="space-y-3 p-4">
-                  <div className="flex items-start gap-3">
-                    <div className={cn("grid h-10 w-10 flex-none place-items-center rounded-xl", meta.tone)}>
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-baseline gap-x-2 text-sm">
-                        <span className="font-semibold">{post.authorName}</span>
-                        {post.authorGrade ? (
-                          <Badge variant="outline" className="text-[10px]">
-                            {post.authorGrade} кл.
-                          </Badge>
-                        ) : null}
-                        <Badge variant="accent" className="text-[10px] uppercase tracking-wider">
-                          {meta.label}
-                        </Badge>
-                        <span className="ml-auto text-[11px] text-muted-foreground">
-                          {relativeTime(post.createdAt)}
-                        </span>
+              <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
+                {stories.map(([id, s]) => (
+                  <div key={id} className="flex w-16 flex-none flex-col items-center gap-1">
+                    <div className="rounded-full bg-gradient-to-tr from-primary via-accent to-primary p-[2px]">
+                      <div className="grid h-14 w-14 place-items-center rounded-full bg-surface text-base font-semibold">
+                        {initials(s.name)}
                       </div>
-                      <div className="mt-1 text-sm text-foreground/90">{formatPostText(post)}</div>
                     </div>
+                    <div className="line-clamp-1 text-[11px] font-medium text-foreground">
+                      {s.name.split(" ")[0]}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">{s.kinds.size} соб.</div>
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {REACTION_EMOJIS.map((emoji) => {
-                      const r = post.reactions.find((x) => x.emoji === emoji);
-                      const count = r?.count ?? 0;
-                      const mine = r?.mine ?? false;
-                      return (
-                        <button
-                          key={emoji}
-                          type="button"
-                          onClick={() => void onReact(post.id, emoji)}
-                          className={cn(
-                            "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-sm transition-all",
-                            mine
-                              ? "border-primary/40 bg-primary/10 text-primary"
-                              : "border-border text-muted-foreground hover:bg-muted",
-                          )}
-                          aria-label={`Реагировать ${emoji}`}
-                          aria-pressed={mine}
-                        >
-                          <span>{emoji}</span>
-                          {count > 0 ? <span className="text-xs font-medium">{count}</span> : null}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
+                ))}
+              </div>
             );
-          })}
-        </div>
+          })()}
+
+          <div className="space-y-3">
+            {posts.map((post) => {
+              const meta = KIND_META[post.kind];
+              const Icon = meta.icon;
+              const total = post.reactions.reduce((a, r) => a + r.count, 0);
+              return (
+                <Card
+                  key={post.id}
+                  className="overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-soft"
+                >
+                  <CardContent className="space-y-3 p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="rounded-full bg-gradient-to-tr from-primary/40 via-accent/40 to-primary/40 p-[2px]">
+                        <div className="grid h-10 w-10 place-items-center rounded-full bg-surface text-sm font-semibold">
+                          {initials(post.authorName)}
+                        </div>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-baseline gap-x-2 text-sm">
+                          <span className="font-semibold">{post.authorName}</span>
+                          {post.authorGrade ? (
+                            <span className="text-[11px] text-muted-foreground">
+                              {post.authorGrade} кл.
+                            </span>
+                          ) : null}
+                          <span className="ml-auto text-[11px] text-muted-foreground">
+                            {relativeTime(post.createdAt)}
+                          </span>
+                        </div>
+                        <div className="mt-1.5 flex items-start gap-2">
+                          <span className={cn("mt-0.5 grid h-7 w-7 flex-none place-items-center rounded-lg", meta.tone)}>
+                            <Icon className="h-3.5 w-3.5" />
+                          </span>
+                          <p className="text-sm font-medium leading-snug text-foreground">
+                            {formatPostText(post)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-2">
+                      <div className="flex flex-wrap gap-1">
+                        {REACTION_EMOJIS.map((emoji) => {
+                          const r = post.reactions.find((x) => x.emoji === emoji);
+                          const count = r?.count ?? 0;
+                          const mine = r?.mine ?? false;
+                          return (
+                            <button
+                              key={emoji}
+                              type="button"
+                              onClick={() => void onReact(post.id, emoji)}
+                              className={cn(
+                                "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-base transition-all hover:scale-105",
+                                mine
+                                  ? "border-primary/40 bg-primary/10 text-primary"
+                                  : "border-transparent text-muted-foreground hover:border-border hover:bg-muted",
+                              )}
+                              aria-label={`Реагировать ${emoji}`}
+                              aria-pressed={mine}
+                            >
+                              <span>{emoji}</span>
+                              {count > 0 ? <span className="text-xs font-semibold tabular-nums">{count}</span> : null}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {total > 0 ? (
+                        <span className="text-[11px] text-muted-foreground">
+                          {total} реакций
+                        </span>
+                      ) : null}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );

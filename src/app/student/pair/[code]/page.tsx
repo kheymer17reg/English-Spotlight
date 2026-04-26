@@ -7,7 +7,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Check, Copy, Loader2, Send, Sparkles, X } from "lucide-react";
+import { ArrowLeft, Check, Copy, Loader2, Send, Sparkles, Volume2, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -150,6 +150,14 @@ export default function PairChatPage({ params }: { params: { code: string } }) {
     } finally {
       setSending(false);
     }
+  };
+
+  const speakSentence = (s: string) => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    const u = new SpeechSynthesisUtterance(s);
+    u.lang = "en-US";
+    u.rate = 0.95;
+    window.speechSynthesis.speak(u);
   };
 
   const onFinish = async () => {
@@ -307,14 +315,37 @@ export default function PairChatPage({ params }: { params: { code: string } }) {
                     {m.text}
                   </div>
                   {showCorrection ? (
-                    <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-xs">
-                      <div className="flex items-center gap-1 font-medium text-amber-700 dark:text-amber-400">
-                        <Sparkles className="h-3 w-3" /> Lumos:
+                    <div className="rounded-xl border border-amber-500/40 bg-gradient-to-br from-amber-500/10 to-amber-500/5 p-3 shadow-soft">
+                      <div className="mb-1.5 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">
+                          <Sparkles className="h-3.5 w-3.5" /> Lumos подсказывает
+                        </div>
                       </div>
                       {correction!.fixed ? (
-                        <div className="mt-0.5 font-mono text-foreground">{correction!.fixed}</div>
+                        <div className="mb-2 rounded-md border border-amber-500/30 bg-surface/70 px-2.5 py-1.5">
+                          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Правильный вариант</div>
+                          <div className="text-sm font-medium text-foreground">{correction!.fixed}</div>
+                        </div>
                       ) : null}
-                      <div className="mt-0.5 text-muted-foreground">{correction!.tip}</div>
+                      <div className="text-sm leading-snug text-foreground/90">{correction!.tip}</div>
+                      {correction!.fixed ? (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => speakSentence(correction!.fixed)}
+                            className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-surface/60 px-2 py-1 text-xs hover:bg-amber-500/15"
+                          >
+                            <Volume2 className="h-3 w-3" /> Произнести
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => navigator.clipboard?.writeText(correction!.fixed)}
+                            className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-surface/60 px-2 py-1 text-xs hover:bg-amber-500/15"
+                          >
+                            <Copy className="h-3 w-3" /> Скопировать
+                          </button>
+                        </div>
+                      ) : null}
                     </div>
                   ) : null}
                 </div>

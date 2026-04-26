@@ -41,6 +41,13 @@ interface ClassRecord {
   grade: number;
 }
 
+function chatInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
+
 function parseCorrection(raw: string | null): LumosCorrection | null {
   if (!raw) return null;
   try {
@@ -211,7 +218,7 @@ export default function ClassChatPage() {
             Пока тихо. Напиши первое сообщение по-английски — Lumos поправит, если что.
           </div>
         ) : (
-          messages.map((m) => {
+          messages.map((m, i) => {
             const mine = me?.id === m.authorUserId;
             const teacherTone = m.authorRole === "teacher";
             const correction = parseCorrection(m.correction);
@@ -219,54 +226,91 @@ export default function ClassChatPage() {
               mine && correction && !correction.ok && correction.tip;
             const canDelete =
               mine || me?.role === "teacher";
+            const prev = messages[i - 1];
+            const sameAuthor = prev?.authorUserId === m.authorUserId;
+            const showAvatar = !mine && !sameAuthor;
             return (
-              <div key={m.id} className={cn("flex w-full", mine ? "justify-end" : "justify-start")}>
-                <div className="max-w-[80%] space-y-1.5">
-                  <div className="flex items-baseline gap-2 text-[11px] text-muted-foreground">
-                    {!mine ? (
-                      <span className={cn("font-medium", teacherTone && "text-primary")}>
+              <div
+                key={m.id}
+                className={cn(
+                  "flex w-full items-end gap-2",
+                  mine ? "flex-row-reverse" : "flex-row",
+                  sameAuthor ? "mt-0.5" : "mt-2",
+                )}
+              >
+                {!mine ? (
+                  showAvatar ? (
+                    <div
+                      className={cn(
+                        "grid h-8 w-8 flex-none place-items-center rounded-full text-xs font-semibold ring-2",
+                        teacherTone
+                          ? "bg-gradient-to-br from-primary to-accent text-primary-foreground ring-primary/30"
+                          : "bg-gradient-to-br from-sky-500/20 to-violet-500/20 text-foreground ring-border",
+                      )}
+                      title={m.authorName}
+                    >
+                      {chatInitials(m.authorName)}
+                    </div>
+                  ) : (
+                    <div className="h-8 w-8 flex-none" aria-hidden />
+                  )
+                ) : null}
+                <div className={cn("max-w-[78%] space-y-1", mine ? "items-end" : "items-start")}>
+                  {!mine && !sameAuthor ? (
+                    <div className="flex items-center gap-1.5 px-1 text-[11px]">
+                      <span className={cn("font-medium", teacherTone ? "text-primary" : "text-foreground")}>
                         {m.authorName}
-                        {teacherTone ? " · учитель" : ""}
                       </span>
-                    ) : null}
-                    <span>
-                      {new Date(m.createdAt).toLocaleTimeString("ru-RU", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                    {canDelete ? (
-                      <button
-                        type="button"
-                        onClick={() => void onDelete(m.id)}
-                        className="ml-1 text-muted-foreground/70 hover:text-rose-600"
-                        aria-label="Удалить"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    ) : null}
-                  </div>
-                  <div
-                    className={cn(
-                      "rounded-2xl px-3 py-2 text-sm shadow-sm",
-                      mine
-                        ? "bg-primary text-primary-foreground"
-                        : teacherTone
-                        ? "border border-primary/30 bg-primary/5 text-foreground"
-                        : "bg-muted text-foreground",
-                    )}
-                  >
-                    {m.text}
+                      {teacherTone ? (
+                        <span className="rounded-full bg-primary/15 px-1.5 py-0 text-[9px] font-semibold uppercase tracking-wide text-primary">
+                          учитель
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  <div className={cn("group flex items-end gap-1", mine ? "flex-row-reverse" : "flex-row")}>
+                    <div
+                      className={cn(
+                        "rounded-2xl px-3 py-2 text-sm shadow-sm",
+                        mine
+                          ? "bg-primary text-primary-foreground"
+                          : teacherTone
+                          ? "border-2 border-primary/40 bg-gradient-to-br from-primary/10 to-accent/10 text-foreground"
+                          : "border border-border bg-surface text-foreground",
+                      )}
+                    >
+                      {m.text}
+                    </div>
+                    <div className="flex items-center gap-1 px-1 pb-0.5 text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
+                      <span>
+                        {new Date(m.createdAt).toLocaleTimeString("ru-RU", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                      {canDelete ? (
+                        <button
+                          type="button"
+                          onClick={() => void onDelete(m.id)}
+                          className="rounded p-0.5 hover:bg-rose-500/10 hover:text-rose-600"
+                          aria-label="Удалить"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                   {showCorrection ? (
-                    <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-xs">
-                      <div className="flex items-center gap-1 font-medium text-amber-700 dark:text-amber-400">
-                        <Sparkles className="h-3 w-3" /> Lumos:
+                    <div className="rounded-xl border border-amber-500/40 bg-gradient-to-br from-amber-500/10 to-amber-500/5 p-2.5">
+                      <div className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">
+                        <Sparkles className="h-3 w-3" /> Lumos
                       </div>
                       {correction!.fixed ? (
-                        <div className="mt-0.5 font-mono text-foreground">{correction!.fixed}</div>
+                        <div className="mb-1 rounded-md border border-amber-500/30 bg-surface/60 px-2 py-1 text-sm font-medium text-foreground">
+                          {correction!.fixed}
+                        </div>
                       ) : null}
-                      <div className="mt-0.5 text-muted-foreground">{correction!.tip}</div>
+                      <div className="text-xs leading-snug text-foreground/90">{correction!.tip}</div>
                     </div>
                   ) : null}
                 </div>

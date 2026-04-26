@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BookOpen, ChevronDown } from "lucide-react";
+import { BookOpen, ChevronDown, Search } from "lucide-react";
 import { SpeakButton } from "@/components/audio/speak-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,48 +22,99 @@ export default function ReadingPage() {
     ];
   }, [student]);
   const [active, setActive] = useState<ReadingText | null>(texts[0] ?? null);
+  const [textQuery, setTextQuery] = useState("");
+
+  const visibleTexts = useMemo(() => {
+    const q = textQuery.trim().toLowerCase();
+    if (!q) return texts;
+    return texts.filter((t) => t.title.toLowerCase().includes(q));
+  }, [texts, textQuery]);
 
   if (!student) return null;
   if (!texts.length) return <EmptyState title="Текстов пока нет" />;
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-5 lg:grid-cols-[260px_1fr]">
+    <div className="mx-auto grid max-w-7xl gap-5 lg:grid-cols-[240px_1fr] xl:grid-cols-[240px_minmax(0,1fr)_280px]">
       <aside className="space-y-2">
-        {texts.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setActive(t)}
-            className={`w-full rounded-lg border p-3 text-left transition-colors ${
-              active?.id === t.id
-                ? "border-primary bg-primary/5"
-                : "border-border bg-surface hover:bg-muted"
-            }`}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className="truncate text-sm font-medium">{t.title}</span>
-              <Badge variant="outline" className="text-[10px]">{t.level}</Badge>
-            </div>
-            <div className="mt-1 text-xs text-muted-foreground">{t.grade} класс</div>
-          </button>
-        ))}
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={textQuery}
+            onChange={(e) => setTextQuery(e.target.value)}
+            placeholder="Искать текст…"
+            className="h-8 w-full rounded-md border border-border bg-surface pl-8 pr-2 text-xs outline-none focus:border-primary/40"
+          />
+        </div>
+        <div className="space-y-1.5 lg:max-h-[calc(100vh-160px)] lg:overflow-y-auto lg:pr-1">
+          {visibleTexts.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setActive(t)}
+              className={`w-full rounded-lg border p-2.5 text-left transition-colors ${
+                active?.id === t.id
+                  ? "border-primary bg-primary/5"
+                  : "border-border bg-surface hover:bg-muted"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="truncate text-sm font-medium">{t.title}</span>
+                <Badge variant="outline" className="text-[10px]">{t.level}</Badge>
+              </div>
+              <div className="mt-0.5 text-[11px] text-muted-foreground">{t.grade} класс</div>
+            </button>
+          ))}
+        </div>
       </aside>
       {active ? (
-        <ReadingView
-          t={active}
-          onRevealAnswer={() => {
-            void logActivity({
-              studentId: student.id,
-              activityType: "reading",
-              xp: 3,
-              skill: "reading",
-              meta: { readingId: active.id },
-            }).then((r) => {
-              if (r) updateStudent({ xp: r.xp, level: r.level, streak: r.streak });
-            });
-          }}
-        />
+        <>
+          <ReadingView
+            t={active}
+            onRevealAnswer={() => {
+              void logActivity({
+                studentId: student.id,
+                activityType: "reading",
+                xp: 3,
+                skill: "reading",
+                meta: { readingId: active.id },
+              }).then((r) => {
+                if (r) updateStudent({ xp: r.xp, level: r.level, streak: r.streak });
+              });
+            }}
+          />
+          <GlossaryAside reading={active} />
+        </>
       ) : null}
     </div>
+  );
+}
+
+function GlossaryAside({ reading }: { reading: ReadingText }) {
+  return (
+    <aside className="hidden xl:block">
+      <div className="sticky top-20 max-h-[calc(100vh-100px)] space-y-2 overflow-y-auto rounded-xl border border-border bg-surface p-3">
+        <div className="mb-1 flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <BookOpen className="h-3.5 w-3.5 text-primary" /> Глоссарий
+          </div>
+          <span className="text-[10px] text-muted-foreground">{reading.glossary.length}</span>
+        </div>
+        {reading.glossary.length === 0 ? (
+          <div className="py-4 text-center text-xs text-muted-foreground">Для этого текста глоссарий пуст</div>
+        ) : (
+          <div className="space-y-1">
+            {reading.glossary.map((g) => (
+              <div
+                key={g.word}
+                className="flex items-baseline justify-between gap-2 rounded-md px-2 py-1 text-sm hover:bg-muted/50"
+              >
+                <span className="font-medium text-foreground">{g.word}</span>
+                <span className="text-right text-xs text-muted-foreground">{g.translation}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </aside>
   );
 }
 
@@ -98,7 +149,7 @@ function ReadingView({ t, onRevealAnswer }: { t: ReadingText; onRevealAnswer: ()
           Подсказка: нажми на слово, чтобы услышать его. Подчёркнутые слова из глоссария — с переводом.
         </p>
 
-        <div>
+        <div className="xl:hidden">
           <button
             type="button"
             onClick={() => setOpen((o) => !o)}
