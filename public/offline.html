@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Spotlight — офлайн</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #0b0b17;
+    --fg: #ffffff;
+    --muted: #9ca3af;
+    --primary: #6366f1;
+    --accent: #ec4899;
+  }
+  html, body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(1200px 600px at 50% -10%, rgba(99,102,241,0.25), transparent 60%),
+                radial-gradient(900px 500px at 90% 110%, rgba(236,72,153,0.18), transparent 60%),
+                var(--bg);
+    color: var(--fg);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  main {
+    max-width: 420px;
+    text-align: center;
+  }
+  .logo {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 20px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    display: grid;
+    place-items: center;
+    box-shadow: 0 10px 30px rgba(99,102,241,0.35);
+  }
+  h1 {
+    font-size: 24px;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  p {
+    color: var(--muted);
+    line-height: 1.5;
+    margin: 0 0 20px;
+  }
+  .actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  button, a.btn {
+    all: unset;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-weight: 500;
+    font-size: 14px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: #fff;
+    box-shadow: 0 6px 18px rgba(99,102,241,0.35);
+    transition: transform 0.15s;
+  }
+  button:hover, a.btn:hover { transform: translateY(-1px); }
+  a.ghost {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.18);
+    box-shadow: none;
+  }
+  .hint {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 20px;
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="logo" aria-hidden="true">
+    <svg width="40" height="40" viewBox="0 0 40 40">
+      <path d="M28 7.5 L33 9.2 L22.5 32 L7 27.5 Z" fill="rgba(255,255,255,0.35)"/>
+      <circle cx="30.5" cy="8" r="3.4" fill="#ffffff"/>
+      <circle cx="30.5" cy="8" r="1.4" fill="#6366f1"/>
+      <path d="M6 26.5 C 11 24.5, 15.5 24.5, 19.5 27 L 19.5 33.2 C 15.5 30.7, 11 30.7, 6 32.7 Z" fill="#ffffff" opacity="0.92"/>
+      <path d="M34 26.5 C 29 24.5, 24.5 24.5, 20.5 27 L 20.5 33.2 C 24.5 30.7, 29 30.7, 34 32.7 Z" fill="#ffffff"/>
+    </svg>
+  </div>
+  <h1>Нет соединения</h1>
+  <p>
+    Ты открыл страницу, которая ещё не была загружена. Проверь интернет — и вернёмся к занятиям.
+  </p>
+  <div class="actions">
+    <button onclick="location.reload()">Повторить</button>
+    <a class="btn ghost" href="/student/vocabulary">Словарь (офлайн)</a>
+  </div>
+  <p class="hint">
+    Уже посещённые страницы работают даже без интернета. Сохранённая пачка слов доступна для повторения в любое время.
+  </p>
+</main>
+</body>
+</html>

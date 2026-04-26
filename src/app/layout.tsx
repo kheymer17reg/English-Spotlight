@@ -3,6 +3,7 @@ import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { auth } from "@/auth";
 import { AuthSessionProvider } from "@/components/auth/session-provider";
+import { PWARegister } from "@/components/pwa/pwa-register";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"], display: "swap", variable: "--font-sans" });
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], display: "swap", variable: "--font-display" });
@@ -12,6 +13,12 @@ export const metadata: Metadata = {
   description:
     "Современная AI-платформа для изучения английского по учебнику Spotlight: генератор заданий, тесты, планы уроков, аналитика, Lumos AI.",
   keywords: ["Spotlight", "английский", "учитель", "ученик", "AI", "Lumos", "ФГОС"],
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "Spotlight",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export const viewport: Viewport = {
@@ -42,6 +49,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body className="min-h-dvh bg-background text-foreground antialiased">
         <AuthSessionProvider session={session}>{children}</AuthSessionProvider>
+        <PWARegister />
       </body>
     </html>
   );

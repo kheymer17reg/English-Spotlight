@@ -27,6 +27,7 @@ import { Brand } from "@/components/layout/brand";
 import { Badge } from "@/components/ui/badge";
 import { useStore } from "@/lib/store";
 import { UserMenu } from "@/components/auth/user-menu";
+import { InstallAppButton } from "@/components/pwa/install-app-button";
 
 interface NavItem {
   href: string;
@@ -168,6 +169,7 @@ export function StudentSidebar() {
             </div>
           </Link>
         ) : null}
+        <InstallAppButton className="w-full justify-center" />
         <UserMenu />
       </div>
     </aside>

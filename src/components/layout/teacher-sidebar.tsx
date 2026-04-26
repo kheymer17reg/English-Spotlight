@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { Brand } from "@/components/layout/brand";
 import { Badge } from "@/components/ui/badge";
 import { UserMenu } from "@/components/auth/user-menu";
+import { InstallAppButton } from "@/components/pwa/install-app-button";
 
 export const teacherNavItems: { href: string; label: string; icon: typeof Home; end?: boolean; badge?: string }[] = [
   { href: "/teacher", label: "Главная", icon: Home, end: true },
@@ -80,6 +81,7 @@ export function TeacherSidebar() {
             Готовые шаблоны тех. карт и тестов по программе Spotlight 2–8 класс
           </p>
         </div>
+        <InstallAppButton className="w-full justify-center" />
         <UserMenu />
       </div>
     </aside>
