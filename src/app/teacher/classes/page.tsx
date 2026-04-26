@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { GraduationCap, Loader2, LogIn, Plus, Trash2, Users } from "lucide-react";
+import { GraduationCap, Loader2, LogIn, MessagesSquare, Plus, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -226,6 +226,13 @@ export default function TeacherClassesPage() {
                 <CardDescription>
                   Дай этот код ученикам — при регистрации выберут «Ученик» и введут код на странице «Мои классы».
                 </CardDescription>
+                <div className="pt-2">
+                  <Link href={`/student/classes/${selected}/chat`}>
+                    <Button size="sm" variant="outline" className="gap-1.5">
+                      <MessagesSquare className="h-3.5 w-3.5" /> Открыть чат класса
+                    </Button>
+                  </Link>
+                </div>
               </CardHeader>
               <CardContent>
                 {members.length === 0 ? (

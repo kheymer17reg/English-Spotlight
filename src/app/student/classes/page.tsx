@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { GraduationCap, Loader2, LogIn, Users } from "lucide-react";
+import { GraduationCap, Loader2, LogIn, MessagesSquare, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -139,7 +139,7 @@ export default function StudentClassesPage() {
         <div className="grid gap-3 sm:grid-cols-2">
           {classes.map((c) => (
             <Card key={c.id}>
-              <CardContent className="p-4">
+              <CardContent className="space-y-3 p-4">
                 <div className="flex items-center justify-between gap-2">
                   <div>
                     <div className="font-semibold">{c.name}</div>
@@ -148,6 +148,13 @@ export default function StudentClassesPage() {
                     </div>
                   </div>
                   <Badge variant="outline">{c.grade} кл</Badge>
+                </div>
+                <div className="flex justify-end">
+                  <Link href={`/student/classes/${c.id}/chat`}>
+                    <Button size="sm" variant="outline" className="gap-1.5">
+                      <MessagesSquare className="h-3.5 w-3.5" /> Чат класса
+                    </Button>
+                  </Link>
                 </div>
               </CardContent>
             </Card>
