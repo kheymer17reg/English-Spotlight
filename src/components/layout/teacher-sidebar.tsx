@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   BookOpenCheck,
+  Camera,
   ClipboardCheck,
   ClipboardList,
   Compass,
@@ -32,6 +33,7 @@ export const teacherNavItems: { href: string; label: string; icon: typeof Home; 
   { href: "/teacher/journal", label: "Журнал", icon: BookOpenCheck, badge: "NEW" },
   { href: "/teacher/classes", label: "Классы", icon: GraduationCap, badge: "NEW" },
   { href: "/teacher/homework", label: "Домашки", icon: ClipboardList, badge: "NEW" },
+  { href: "/teacher/homework/photo", label: "Фото-ДЗ", icon: Camera, badge: "AI" },
   { href: "/teacher/board", label: "Доска", icon: Palette, badge: "NEW" },
   { href: "/teacher/pronunciation", label: "Произношение", icon: Mic, badge: "NEW" },
   { href: "/teacher/quiz", label: "Live-квиз", icon: Radio, badge: "NEW" },
