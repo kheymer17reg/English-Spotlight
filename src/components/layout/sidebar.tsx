@@ -65,6 +65,7 @@ export const studentNavSections: NavSection[] = [
     title: "Говорение",
     items: [
       { href: "/student/pronunciation", label: "Лингафон", icon: Mic2 },
+      { href: "/student/speak", label: "Студия речи", icon: Mic, badge: "AI" },
       { href: "/student/roleplay", label: "Ролевик", icon: Mic },
       { href: "/student/pair", label: "Парный диалог", icon: MessagesSquare, badge: "NEW" },
     ],
