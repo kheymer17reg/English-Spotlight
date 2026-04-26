@@ -1,4 +1,5 @@
 import type { ReadingText } from "@/types";
+import { READINGS_EXTRA } from "@/lib/readings-extra";
 
 // Auto-generated + curated Spotlight reading bank (7 grades × ~8 texts).
 // Generated via scripts/gen-content.mjs then promoted by scripts/promote.mjs.
@@ -2618,10 +2619,17 @@ export const READINGS: ReadingText[] = [
   }
 ] as ReadingText[];
 
+// Combined view: auto-generated + curated extras. Use this everywhere.
+const ALL_READINGS: ReadingText[] = [...READINGS, ...READINGS_EXTRA];
+
 export function readingsByGrade(grade: number): ReadingText[] {
-  return READINGS.filter((r) => r.grade === grade);
+  return ALL_READINGS.filter((r) => r.grade === grade);
 }
 
 export function readingById(id: string): ReadingText | undefined {
-  return READINGS.find((r) => r.id === id);
+  return ALL_READINGS.find((r) => r.id === id);
+}
+
+export function allReadings(): ReadingText[] {
+  return ALL_READINGS;
 }
