@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Award,
@@ -61,6 +62,11 @@ export default function ProfilePage() {
   const [name, setName] = useState(student?.name ?? "");
   const [grade, setGrade] = useState<Grade>(student?.grade ?? 5);
   const [report, setReport] = useState<StudentProgressReport | null>(null);
+  const [cosmetics, setCosmetics] = useState<{
+    avatarPreview: string;
+    framePreview: string;
+    titlePreview: string;
+  }>({ avatarPreview: "", framePreview: "from-primary via-accent to-primary", titlePreview: "" });
 
   useEffect(() => {
     if (!student?.id) return;
@@ -80,6 +86,26 @@ export default function ProfilePage() {
     return () => {
       cancelled = true;
     };
+  }, [student?.id]);
+
+  useEffect(() => {
+    if (!student?.id) return;
+    void (async () => {
+      try {
+        const r = await fetch("/api/cosmetics", { cache: "no-store" });
+        if (!r.ok) return;
+        const body = (await r.json()) as {
+          loadout: { avatarId: string; frameId: string; titleId: string };
+          catalog: { id: string; preview: string }[];
+        };
+        const map = new Map(body.catalog.map((c) => [c.id, c.preview]));
+        setCosmetics({
+          avatarPreview: map.get(body.loadout.avatarId) ?? "",
+          framePreview: map.get(body.loadout.frameId) ?? "from-primary via-accent to-primary",
+          titlePreview: map.get(body.loadout.titleId) ?? "",
+        });
+      } catch { /* ignore */ }
+    })();
   }, [student?.id]);
 
   if (!student) return null;
@@ -104,15 +130,27 @@ export default function ProfilePage() {
       <Card className="overflow-hidden border-primary/20">
         <div className="relative bg-gradient-to-br from-primary/15 via-surface to-accent/15 p-5">
           <div className="flex flex-wrap items-center gap-4">
-            <div className="rounded-full bg-gradient-to-tr from-primary via-accent to-primary p-[3px]">
-              <div className="grid h-20 w-20 place-items-center rounded-full bg-surface font-display text-2xl font-bold">
-                {profileInitials(student.name)}
+            <div className={cn("rounded-full bg-gradient-to-tr p-[3px]", cosmetics.framePreview)}>
+              <div className="grid h-20 w-20 place-items-center rounded-full bg-surface">
+                {cosmetics.avatarPreview && cosmetics.avatarPreview !== "🙂" ? (
+                  <span className="text-4xl">{cosmetics.avatarPreview}</span>
+                ) : (
+                  <span className="font-display text-2xl font-bold">{profileInitials(student.name)}</span>
+                )}
               </div>
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-baseline gap-2">
                 <h1 className="font-display text-2xl font-semibold">{student.name}</h1>
+                {cosmetics.titlePreview ? (
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                    {cosmetics.titlePreview}
+                  </span>
+                ) : null}
                 <Badge variant="outline" className="text-xs">{student.grade} класс</Badge>
+                <Link href="/student/profile/customize" className="text-xs text-muted-foreground underline-offset-2 hover:text-primary hover:underline">
+                  Настроить вид
+                </Link>
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                 <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 font-semibold text-primary">

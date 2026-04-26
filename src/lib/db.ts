@@ -295,6 +295,13 @@ export function getDb() {
       PRIMARY KEY (studentId, storyId)
     );
     CREATE INDEX IF NOT EXISTS idx_story_progress_student ON story_progress(studentId);
+    CREATE TABLE IF NOT EXISTS user_cosmetics (
+      userId TEXT PRIMARY KEY,
+      avatarId TEXT,
+      frameId TEXT,
+      titleId TEXT,
+      updatedAt TEXT NOT NULL
+    );
   `);
   // Lightweight migrations — add engine/azure columns if an older DB predates them.
   const pronCols = db
