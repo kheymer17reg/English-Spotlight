@@ -605,6 +605,8 @@ export function vocabularyByGrade(grade: Grade): VocabWord[] {
       words.push({
         id,
         grade,
+        moduleNumber: m.number,
+        moduleTitle: m.title,
         word: w,
         translation: meta.translation,
         partOfSpeech: meta.pos,

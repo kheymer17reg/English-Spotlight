@@ -24,6 +24,8 @@ export interface CurriculumModule {
 export interface VocabWord {
   id: string;
   grade: Grade;
+  moduleNumber: number;
+  moduleTitle: string;
   word: string;
   translation: string;
   partOfSpeech: string;

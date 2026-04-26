@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { CalendarPlus, Download, FileText, Loader2, Plus, Trash2, UserSquare } from "lucide-react";
+import { CalendarPlus, ChevronDown, Download, FileText, Loader2, Plus, Trash2, UserSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -58,6 +58,8 @@ export default function TeacherJournalPage() {
   const [period, setPeriod] = useState<Period>("all");
   const [studentQuery, setStudentQuery] = useState("");
   const [openStudentId, setOpenStudentId] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [showNewLesson, setShowNewLesson] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -201,32 +203,26 @@ export default function TeacherJournalPage() {
           <p className="text-muted-foreground">Оценки 2-5, посещаемость, комментарии — по классам и урокам</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Select value={grade} onChange={(e) => setGrade(Number(e.target.value))} className="w-36">
+          <Select value={grade} onChange={(e) => setGrade(Number(e.target.value))} className="w-32">
             {GRADES.map((g) => <option key={g} value={g}>{g} класс</option>)}
           </Select>
-          <div className="inline-flex rounded-md border border-border bg-surface p-0.5">
-            {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setPeriod(p)}
-                className={cn(
-                  "rounded px-2.5 py-1 text-xs font-medium transition-colors",
-                  period === p
-                    ? "bg-primary/15 text-primary"
-                    : "text-muted-foreground hover:bg-muted",
-                )}
-              >
-                {PERIOD_LABELS[p]}
-              </button>
-            ))}
-          </div>
           <Input
             placeholder="Поиск ученика…"
             value={studentQuery}
             onChange={(e) => setStudentQuery(e.target.value)}
-            className="w-44"
+            className="hidden w-44 sm:block"
           />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilters((v) => !v)}
+            className="gap-1.5"
+          >
+            <ChevronDown
+              className={cn("h-3.5 w-3.5 transition-transform", showFilters && "rotate-180")}
+            />
+            Фильтры{period !== "all" ? ` · ${PERIOD_LABELS[period]}` : ""}
+          </Button>
           <Button variant="outline" size="sm" onClick={exportCsv} className="gap-2">
             <Download className="h-4 w-4" /> CSV
           </Button>
@@ -239,32 +235,72 @@ export default function TeacherJournalPage() {
         </div>
       </div>
 
+      {showFilters ? (
+        <Card>
+          <CardContent className="flex flex-wrap items-center gap-3 py-3">
+            <Input
+              placeholder="Поиск ученика…"
+              value={studentQuery}
+              onChange={(e) => setStudentQuery(e.target.value)}
+              className="w-full sm:w-56 sm:hidden"
+            />
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">Период:</div>
+            <div className="inline-flex rounded-md border border-border bg-surface p-0.5">
+              {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPeriod(p)}
+                  className={cn(
+                    "rounded px-2.5 py-1 text-xs font-medium transition-colors",
+                    period === p
+                      ? "bg-primary/15 text-primary"
+                      : "text-muted-foreground hover:bg-muted",
+                  )}
+                >
+                  {PERIOD_LABELS[p]}
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CalendarPlus className="h-4 w-4 text-primary" /> Новый урок
-          </CardTitle>
-          <CardDescription>Создаст колонку во всех строках учеников {grade} класса</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap items-center gap-2">
-            <Input
-              type="date"
-              value={newDate}
-              onChange={(e) => setNewDate(e.target.value)}
-              className="w-40"
-            />
-            <Input
-              placeholder="Тема урока (например: School Days · SB стр.18-19)"
-              value={newTopic}
-              onChange={(e) => setNewTopic(e.target.value)}
-              className="min-w-[280px] flex-1"
-            />
-            <Button onClick={createLesson} loading={creating} className="gap-2">
-              <Plus className="h-4 w-4" /> Добавить
-            </Button>
+        <button
+          type="button"
+          onClick={() => setShowNewLesson((v) => !v)}
+          className="flex w-full items-center justify-between px-6 py-3 text-left transition-colors hover:bg-muted/50"
+        >
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <CalendarPlus className="h-4 w-4 text-primary" />
+            Новый урок · {grade} класс
           </div>
-        </CardContent>
+          <ChevronDown
+            className={cn("h-4 w-4 text-muted-foreground transition-transform", showNewLesson && "rotate-180")}
+          />
+        </button>
+        {showNewLesson ? (
+          <CardContent className="border-t border-border">
+            <div className="flex flex-wrap items-center gap-2 pt-3">
+              <Input
+                type="date"
+                value={newDate}
+                onChange={(e) => setNewDate(e.target.value)}
+                className="w-40"
+              />
+              <Input
+                placeholder="Тема урока (например: School Days · SB стр.18-19)"
+                value={newTopic}
+                onChange={(e) => setNewTopic(e.target.value)}
+                className="min-w-[260px] flex-1"
+              />
+              <Button onClick={createLesson} loading={creating} className="gap-2">
+                <Plus className="h-4 w-4" /> Добавить
+              </Button>
+            </div>
+          </CardContent>
+        ) : null}
       </Card>
 
       <Card>
@@ -321,16 +357,28 @@ export default function TeacherJournalPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {visibleStudents.map((s) => {
+                  {visibleStudents.map((s, idx) => {
                     const marks = visibleLessons.map((l) => entryMap.get(`${l.id}|${s.id}`));
                     const nums = marks
                       .filter((e) => e?.attendance !== "absent")
                       .map((e) => Number(e?.mark))
                       .filter((n) => Number.isFinite(n) && n > 0);
                     const avg = nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : null;
+                    const stripe = idx % 2 === 1;
                     return (
-                      <tr key={s.id} className="border-b border-border hover:bg-muted/30">
-                        <td className="sticky left-0 z-10 border-r border-border bg-surface px-4 py-2 font-medium">
+                      <tr
+                        key={s.id}
+                        className={cn(
+                          "border-b border-border transition-colors hover:bg-primary/5",
+                          stripe && "bg-muted/20",
+                        )}
+                      >
+                        <td
+                          className={cn(
+                            "sticky left-0 z-10 border-r border-border px-4 py-2 font-medium shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]",
+                            stripe ? "bg-muted/40" : "bg-surface",
+                          )}
+                        >
                           <button
                             type="button"
                             onClick={() => setOpenStudentId(s.id)}

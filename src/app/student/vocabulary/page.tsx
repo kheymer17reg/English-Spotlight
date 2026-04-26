@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Brain, Cloud, RefreshCw, Shuffle, Sparkles } from "lucide-react";
+import { Brain, Cloud, RefreshCw, Search, Shuffle, Sparkles, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/ui/empty";
 import { SpeakButton } from "@/components/audio/speak-button";
@@ -27,6 +28,26 @@ import {
 export default function VocabularyPage() {
   const student = useStore((s) => s.student);
   const words: VocabWord[] = useMemo(() => (student ? vocabularyByGrade(student.grade) : []), [student]);
+  const [moduleFilter, setModuleFilter] = useState<number | "all">("all");
+  const [query, setQuery] = useState("");
+
+  const moduleOptions = useMemo(() => {
+    const seen = new Map<number, string>();
+    for (const w of words) if (!seen.has(w.moduleNumber)) seen.set(w.moduleNumber, w.moduleTitle);
+    return [...seen.entries()].map(([n, t]) => ({ number: n, title: t }));
+  }, [words]);
+
+  const filteredWords = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return words.filter((w) => {
+      if (moduleFilter !== "all" && w.moduleNumber !== moduleFilter) return false;
+      if (q) {
+        const hay = `${w.word} ${w.translation} ${w.example}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [words, moduleFilter, query]);
 
   if (!student) return null;
   if (!words.length)
@@ -37,13 +58,19 @@ export default function VocabularyPage() {
       />
     );
 
+  const filterApplied = moduleFilter !== "all" || query.trim().length > 0;
+
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl font-semibold">Словарь</h1>
           <p className="text-muted-foreground">
-            {student.grade} класс · <span className="font-semibold text-foreground">{words.length}</span> слов
+            {student.grade} класс ·{" "}
+            <span className="font-semibold text-foreground">
+              {filterApplied ? `${filteredWords.length} из ${words.length}` : words.length}
+            </span>{" "}
+            слов
           </p>
         </div>
         <div className="flex gap-1 rounded-xl border border-border bg-muted/30 p-1 text-[11px] text-muted-foreground">
@@ -55,6 +82,51 @@ export default function VocabularyPage() {
           </span>
         </div>
       </div>
+
+      <Card>
+        <CardContent className="flex flex-wrap items-center gap-2 py-3">
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Поиск по слову, переводу или примеру…"
+              className="pl-9"
+            />
+            {query ? (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                aria-label="Очистить"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            ) : null}
+          </div>
+          <div className="flex w-full overflow-x-auto sm:w-auto">
+            <div className="flex flex-nowrap gap-1.5">
+              <ModuleChip
+                active={moduleFilter === "all"}
+                onClick={() => setModuleFilter("all")}
+              >
+                Все модули
+              </ModuleChip>
+              {moduleOptions.map((m) => (
+                <ModuleChip
+                  key={m.number}
+                  active={moduleFilter === m.number}
+                  onClick={() => setModuleFilter(m.number)}
+                  title={m.title}
+                >
+                  M{m.number}
+                </ModuleChip>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Tabs defaultValue="review">
         <TabsList>
           <TabsTrigger value="review">Повторение</TabsTrigger>
@@ -66,26 +138,61 @@ export default function VocabularyPage() {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="review">
-          <ReviewDeck words={words} studentId={student.id} grade={student.grade} />
+          <ReviewDeck words={filteredWords.length > 0 ? filteredWords : words} studentId={student.id} grade={student.grade} />
         </TabsContent>
         <TabsContent value="list">
-          <div className="grid gap-3 md:grid-cols-2">
-            {words.map((w) => (
-              <WordCard key={w.id} w={w} />
-            ))}
-          </div>
+          {filteredWords.length === 0 ? (
+            <EmptyState
+              title="Ничего не нашлось"
+              description="Попробуй изменить запрос или выбери другой модуль."
+            />
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2">
+              {filteredWords.map((w) => (
+                <WordCard key={w.id} w={w} />
+              ))}
+            </div>
+          )}
         </TabsContent>
         <TabsContent value="cards">
-          <FlashCards words={words} />
+          <FlashCards words={filteredWords.length > 0 ? filteredWords : words} />
         </TabsContent>
         <TabsContent value="quiz">
-          <Quiz words={words} />
+          <Quiz words={filteredWords.length >= 4 ? filteredWords : words} />
         </TabsContent>
         <TabsContent value="offline">
           <OfflineVocabPanel grade={student.grade} words={words} />
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function ModuleChip({
+  active,
+  onClick,
+  children,
+  title,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  title?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className={cn(
+        "flex-none rounded-full border px-3 py-1 text-xs font-medium transition-all",
+        active
+          ? "border-primary/40 bg-primary/15 text-primary shadow-sm"
+          : "border-border bg-surface text-muted-foreground hover:border-primary/30 hover:text-foreground",
+      )}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -96,7 +203,11 @@ function WordCard({ w }: { w: VocabWord }) {
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-base font-semibold">{w.word}</span>
+            {w.transcription ? (
+              <span className="font-mono text-xs text-muted-foreground">/{w.transcription}/</span>
+            ) : null}
             <Badge variant="outline" className="text-[10px]">{w.partOfSpeech}</Badge>
+            <Badge variant="primary" className="text-[10px]">M{w.moduleNumber}</Badge>
           </div>
           <div className="text-sm text-muted-foreground">{w.translation}</div>
           <div className="mt-1 truncate text-xs italic text-muted-foreground">“{w.example}”</div>
@@ -166,6 +277,11 @@ function FlashCards({ words }: { words: VocabWord[] }) {
               <div className="font-display text-5xl font-semibold tracking-tight">
                 {w.word}
               </div>
+              {w.transcription ? (
+                <div className="mt-2 font-mono text-lg text-muted-foreground">
+                  /{w.transcription}/
+                </div>
+              ) : null}
               <div
                 className="mt-4 inline-flex"
                 onClick={(e) => e.stopPropagation()}
@@ -173,7 +289,7 @@ function FlashCards({ words }: { words: VocabWord[] }) {
                 <SpeakButton text={w.word} variant="chip" label="Прослушать" />
               </div>
               <div className="mt-3 text-xs uppercase tracking-widest text-muted-foreground">
-                тапни, чтобы перевернуть
+                тапни, чтобы перевернуть · M{w.moduleNumber}
               </div>
             </div>
           ) : (
