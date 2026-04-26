@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { useStore } from "@/lib/store";
 import { ParentLinkCard } from "@/components/parent/parent-link-card";
+import { StreakCalendar } from "@/components/streak/streak-calendar";
 import { cn } from "@/lib/utils";
 import type { Grade, StudentProgressReport, UnlockedBadge } from "@/types";
 
@@ -143,6 +144,8 @@ export default function ProfilePage() {
           </div>
         </div>
       </Card>
+
+      <StreakCalendar />
 
       {/* Recent badges */}
       <Card>

@@ -24,6 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { StreakCalendar } from "@/components/streak/streak-calendar";
 import { cn } from "@/lib/utils";
 
 type Period = "week" | "month" | "quarter" | "all";
@@ -191,6 +192,8 @@ export default function ParentChildPage({ params }: { params: { id: string } }) 
           </div>
         </div>
       </Card>
+
+      <StreakCalendar studentId={params.id} />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
