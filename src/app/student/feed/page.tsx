@@ -133,13 +133,71 @@ export default function FeedPage() {
     void refresh();
   }, [refresh]);
 
-  // Polite polling — every 60 seconds when tab visible.
+  // Live updates via SSE. The browser auto-reconnects on transient failures;
+  // we additionally refetch on `visibilitychange` so a backgrounded tab gets a
+  // fresh snapshot when the user returns.
   useEffect(() => {
     if (!activeClass) return;
-    const interval = setInterval(() => {
-      if (document.visibilityState === "visible") void refresh();
-    }, 60_000);
-    return () => clearInterval(interval);
+    let cancelled = false;
+    const url = `/api/feed/stream?classId=${encodeURIComponent(activeClass)}`;
+    const es = new EventSource(url, { withCredentials: true });
+
+    const handlePostCreated = () => {
+      if (!cancelled) void refresh();
+    };
+    const handlePostDeleted = (ev: MessageEvent) => {
+      if (cancelled) return;
+      try {
+        const data = JSON.parse(ev.data) as { postId: number };
+        setPosts((cur) => cur.filter((p) => p.id !== data.postId));
+      } catch {
+        void refresh();
+      }
+    };
+    const handleReactionChanged = (ev: MessageEvent) => {
+      if (cancelled) return;
+      try {
+        const data = JSON.parse(ev.data) as {
+          postId: number;
+          emoji: FeedReactionEmoji;
+          delta: 1 | -1;
+        };
+        setPosts((cur) =>
+          cur.map((p) =>
+            p.id === data.postId
+              ? {
+                  ...p,
+                  reactions: p.reactions.map((r) =>
+                    r.emoji === data.emoji
+                      ? { ...r, count: Math.max(0, r.count + data.delta) }
+                      : r,
+                  ),
+                }
+              : p,
+          ),
+        );
+      } catch {
+        // ignore malformed event
+      }
+    };
+
+    es.addEventListener("post.created", handlePostCreated as EventListener);
+    es.addEventListener("post.deleted", handlePostDeleted as EventListener);
+    es.addEventListener("reaction.changed", handleReactionChanged as EventListener);
+
+    const onVisibility = () => {
+      if (!cancelled && document.visibilityState === "visible") void refresh();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      cancelled = true;
+      es.removeEventListener("post.created", handlePostCreated as EventListener);
+      es.removeEventListener("post.deleted", handlePostDeleted as EventListener);
+      es.removeEventListener("reaction.changed", handleReactionChanged as EventListener);
+      document.removeEventListener("visibilitychange", onVisibility);
+      es.close();
+    };
   }, [refresh, activeClass]);
 
   const onReact = async (postId: number, emoji: FeedReactionEmoji) => {

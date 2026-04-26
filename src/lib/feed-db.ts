@@ -1,5 +1,6 @@
 import "server-only";
 import { getDb } from "@/lib/db";
+import { publishFeed } from "@/lib/feed-bus";
 
 export type FeedPostKind =
   | "lesson_done"
@@ -102,7 +103,9 @@ export function createPost(input: CreatePostInput): number {
       JSON.stringify(input.payload ?? {}),
       now,
     );
-  return Number(info.lastInsertRowid);
+  const postId = Number(info.lastInsertRowid);
+  publishFeed(input.classId, { type: "post.created", postId, classId: input.classId });
+  return postId;
 }
 
 /**
@@ -248,6 +251,9 @@ export function toggleReaction(
 ): { added: boolean } {
   ensureMigrated();
   const db = getDb();
+  const post = db
+    .prepare(`SELECT classId FROM feed_posts WHERE id = ?`)
+    .get(postId) as { classId: string } | undefined;
   const existing = db
     .prepare(
       `SELECT 1 FROM feed_reactions WHERE postId = ? AND userId = ? AND emoji = ?`,
@@ -257,11 +263,31 @@ export function toggleReaction(
     db.prepare(
       `DELETE FROM feed_reactions WHERE postId = ? AND userId = ? AND emoji = ?`,
     ).run(postId, userId, emoji);
+    if (post) {
+      publishFeed(post.classId, {
+        type: "reaction.changed",
+        postId,
+        classId: post.classId,
+        emoji,
+        delta: -1,
+        userId,
+      });
+    }
     return { added: false };
   }
   db.prepare(
     `INSERT INTO feed_reactions (postId, userId, emoji, createdAt) VALUES (?, ?, ?, ?)`,
   ).run(postId, userId, emoji, new Date().toISOString());
+  if (post) {
+    publishFeed(post.classId, {
+      type: "reaction.changed",
+      postId,
+      classId: post.classId,
+      emoji,
+      delta: 1,
+      userId,
+    });
+  }
   return { added: true };
 }
 
@@ -269,10 +295,11 @@ export function deletePost(postId: number, userId: string): boolean {
   ensureMigrated();
   const db = getDb();
   const row = db
-    .prepare(`SELECT authorId FROM feed_posts WHERE id = ?`)
-    .get(postId) as { authorId: string } | undefined;
+    .prepare(`SELECT authorId, classId FROM feed_posts WHERE id = ?`)
+    .get(postId) as { authorId: string; classId: string } | undefined;
   if (!row || row.authorId !== userId) return false;
   db.prepare(`DELETE FROM feed_reactions WHERE postId = ?`).run(postId);
   db.prepare(`DELETE FROM feed_posts WHERE id = ?`).run(postId);
+  publishFeed(row.classId, { type: "post.deleted", postId, classId: row.classId });
   return true;
 }
