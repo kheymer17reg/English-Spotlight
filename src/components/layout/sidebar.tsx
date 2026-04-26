@@ -29,6 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import { useStore } from "@/lib/store";
 import { UserMenu } from "@/components/auth/user-menu";
 import { InstallAppButton } from "@/components/pwa/install-app-button";
+import { PushToggle } from "@/components/pwa/push-toggle";
 
 interface NavItem {
   href: string;
@@ -175,6 +176,7 @@ export function StudentSidebar() {
           </Link>
         ) : null}
         <InstallAppButton className="w-full justify-center" />
+        <div className="flex justify-center"><PushToggle compact /></div>
         <UserMenu />
       </div>
     </aside>

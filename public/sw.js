@@ -132,3 +132,42 @@ self.addEventListener("fetch", (event) => {
 
   // Everything else — pass through.
 });
+
+// Push notifications
+self.addEventListener("push", (event) => {
+  let payload = { title: "Spotlight", body: "Новое уведомление", url: "/" };
+  if (event.data) {
+    try {
+      payload = { ...payload, ...event.data.json() };
+    } catch (_) {
+      payload.body = event.data.text() || payload.body;
+    }
+  }
+  const options = {
+    body: payload.body,
+    icon: payload.icon || "/icon.svg",
+    badge: "/icon.svg",
+    tag: payload.tag,
+    data: { url: payload.url || "/" },
+    renotify: Boolean(payload.tag),
+  };
+  event.waitUntil(self.registration.showNotification(payload.title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || "/";
+  event.waitUntil(
+    (async () => {
+      const all = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      for (const c of all) {
+        if (c.url.includes(self.location.origin)) {
+          c.focus();
+          c.navigate(url).catch(() => {});
+          return;
+        }
+      }
+      await self.clients.openWindow(url);
+    })(),
+  );
+});

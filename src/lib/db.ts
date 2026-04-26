@@ -255,6 +255,15 @@ export function getDb() {
       PRIMARY KEY (sessionId, userId, qIdx)
     );
     CREATE INDEX IF NOT EXISTS idx_quiz_answers_session ON quiz_answers(sessionId);
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      endpoint TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      userAgent TEXT,
+      createdAt TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(userId);
   `);
   // Lightweight migrations — add engine/azure columns if an older DB predates them.
   const pronCols = db

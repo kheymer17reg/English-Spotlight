@@ -4,7 +4,8 @@ import { getDb } from "@/lib/db";
 import { generateText } from "@/lib/llm";
 import { pairLumosCorrectionPrompt } from "@/lib/pair-prompts";
 import { appendChatMessage, listChat } from "@/lib/class-chat-db";
-import { logError } from "@/lib/db";
+import { logError, groupMembers } from "@/lib/db";
+import { sendToUsers } from "@/lib/push";
 import type { Grade } from "@/types";
 
 export const runtime = "nodejs";
@@ -128,6 +129,28 @@ export async function POST(
     text,
     correction: correction as unknown as Record<string, unknown> | null,
   });
+
+  // Push to other class members in the background (non-blocking).
+  void (async () => {
+    try {
+      const members = groupMembers(params.id);
+      const recipients = members
+        .filter((m) => m.userId !== session.user!.id)
+        .map((m) => m.userId);
+      if (recipients.length > 0) {
+        const author = session.user?.name ?? "Кто-то";
+        const preview = text.length > 80 ? `${text.slice(0, 80)}…` : text;
+        await sendToUsers(recipients, {
+          title: `${author} в чате класса`,
+          body: preview,
+          url: `/student/classes/${params.id}/chat`,
+          tag: `chat-${params.id}`,
+        });
+      }
+    } catch (e) {
+      try { await logError("classes/chat:push", String(e)); } catch { /* ignore */ }
+    }
+  })();
 
   return NextResponse.json({
     ok: true,

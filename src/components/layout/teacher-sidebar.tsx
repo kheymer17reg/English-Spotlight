@@ -24,6 +24,7 @@ import { Brand } from "@/components/layout/brand";
 import { Badge } from "@/components/ui/badge";
 import { UserMenu } from "@/components/auth/user-menu";
 import { InstallAppButton } from "@/components/pwa/install-app-button";
+import { PushToggle } from "@/components/pwa/push-toggle";
 
 export const teacherNavItems: { href: string; label: string; icon: typeof Home; end?: boolean; badge?: string }[] = [
   { href: "/teacher", label: "Главная", icon: Home, end: true },
@@ -84,6 +85,7 @@ export function TeacherSidebar() {
           </p>
         </div>
         <InstallAppButton className="w-full justify-center" />
+        <div className="flex justify-center"><PushToggle compact /></div>
         <UserMenu />
       </div>
     </aside>
