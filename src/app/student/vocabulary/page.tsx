@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Brain, RefreshCw, Shuffle, Sparkles } from "lucide-react";
+import { Brain, Cloud, RefreshCw, Shuffle, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/ui/empty";
 import { SpeakButton } from "@/components/audio/speak-button";
+import { OfflineVocabPanel } from "@/components/vocab/offline-vocab-panel";
 import { useStore } from "@/lib/store";
 import { vocabularyByGrade } from "@/lib/vocabulary";
 import { shuffle } from "@/lib/utils";
@@ -60,6 +61,9 @@ export default function VocabularyPage() {
           <TabsTrigger value="list">Просмотр</TabsTrigger>
           <TabsTrigger value="cards">Карточки</TabsTrigger>
           <TabsTrigger value="quiz">Квиз</TabsTrigger>
+          <TabsTrigger value="offline" className="gap-1">
+            <Cloud className="h-3 w-3" /> Офлайн
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="review">
           <ReviewDeck words={words} studentId={student.id} grade={student.grade} />
@@ -76,6 +80,9 @@ export default function VocabularyPage() {
         </TabsContent>
         <TabsContent value="quiz">
           <Quiz words={words} />
+        </TabsContent>
+        <TabsContent value="offline">
+          <OfflineVocabPanel grade={student.grade} words={words} />
         </TabsContent>
       </Tabs>
     </div>
