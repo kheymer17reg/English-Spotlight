@@ -6,6 +6,7 @@ import {
   listHomework,
   seedDemoIfEmpty,
 } from "@/lib/db";
+import { requireOwnStudentOrTeacher } from "@/lib/api-auth";
 import {
   recentActivities,
   skillAccuracy,
@@ -29,6 +30,8 @@ export async function GET(req: Request) {
   if (!id) {
     return NextResponse.json({ error: "id required" }, { status: 400 });
   }
+  const own = await requireOwnStudentOrTeacher(id);
+  if (!own.ok) return own.response;
   const student = getStudent(id);
   if (!student) {
     return NextResponse.json({ error: "not found" }, { status: 404 });

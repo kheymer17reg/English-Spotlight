@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { vocabularyByGrade } from "@/lib/vocabulary";
 import type { Grade } from "@/types";
+import { requireAuth } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
 export async function GET(req: Request) {
+  const guard = await requireAuth();
+  if (!guard.ok) return guard.response;
   const url = new URL(req.url);
   const grade = Number(url.searchParams.get("grade") || 5) as Grade;
   const n = Math.max(5, Math.min(20, Number(url.searchParams.get("n") || 10)));

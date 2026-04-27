@@ -5,10 +5,13 @@ import {
   type AzurePronStored,
   type PronAttempt,
 } from "@/lib/db";
+import { requireAuth, requireOwnStudentOrTeacher, requireRole } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
 export async function GET(req: Request) {
+  const guard = await requireRole("teacher");
+  if (!guard.ok) return guard.response;
   const { searchParams } = new URL(req.url);
   const grade = Number(searchParams.get("grade") || "0");
   if (!grade) return NextResponse.json({ error: "grade is required" }, { status: 400 });
@@ -17,6 +20,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   const body = (await req.json()) as Partial<PronAttempt> & {
     azure?: AzurePronStored | null;
     engine?: "web-speech" | "azure" | null;
@@ -27,6 +32,8 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
+  const own = await requireOwnStudentOrTeacher(body.studentId);
+  if (!own.ok) return own.response;
   const attempt: PronAttempt = {
     studentId: body.studentId,
     grade: Number(body.grade),

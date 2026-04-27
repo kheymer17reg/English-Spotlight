@@ -14,6 +14,7 @@ import {
 import { mistakeStats } from "@/lib/mistakes-db";
 import type { Grade, StudentProgressReport, UnlockedBadge } from "@/types";
 import { logError } from "@/lib/db";
+import { requireOwnStudentOrTeacher } from "@/lib/api-auth";
 
 export async function GET(req: Request) {
   try {
@@ -22,6 +23,8 @@ export async function GET(req: Request) {
     if (!studentId) {
       return NextResponse.json({ error: "studentId required" }, { status: 400 });
     }
+    const own = await requireOwnStudentOrTeacher(studentId);
+    if (!own.ok) return own.response;
     const db = getDb();
     const s = db
       .prepare(`SELECT id, name, grade FROM students WHERE id = ?`)

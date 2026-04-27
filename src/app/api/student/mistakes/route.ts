@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { addMistake, listActiveMistakes, listDueMistakes, mistakeStats } from "@/lib/mistakes-db";
 import type { Grade, MistakeKind, MistakeSource } from "@/types";
 import { logError } from "@/lib/db";
+import { requireOwnStudentOrTeacher } from "@/lib/api-auth";
 
 const MISTAKE_KINDS: MistakeKind[] = ["vocab", "grammar", "listening", "translation", "reading"];
 const MISTAKE_SOURCES: MistakeSource[] = ["exercise", "vocab_drill", "homework", "test", "dialogue"];
@@ -14,6 +15,8 @@ export async function GET(req: Request) {
     if (!studentId) {
       return NextResponse.json({ error: "studentId required" }, { status: 400 });
     }
+    const own = await requireOwnStudentOrTeacher(studentId);
+    if (!own.ok) return own.response;
     const list = dueOnly ? listDueMistakes(studentId) : listActiveMistakes(studentId);
     return NextResponse.json({ mistakes: list, stats: mistakeStats(studentId) });
   } catch (err) {
@@ -42,6 +45,8 @@ export async function POST(req: Request) {
     if (!body.studentId || !Array.isArray(body.items) || !body.grade) {
       return NextResponse.json({ error: "studentId, grade, items required" }, { status: 400 });
     }
+    const own = await requireOwnStudentOrTeacher(body.studentId);
+    if (!own.ok) return own.response;
     let added = 0;
     for (const m of body.items) {
       if (!MISTAKE_KINDS.includes(m.kind) || !MISTAKE_SOURCES.includes(m.source)) continue;

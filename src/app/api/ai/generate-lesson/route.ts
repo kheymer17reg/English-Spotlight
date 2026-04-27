@@ -4,10 +4,18 @@ import { lessonPlanPrompt } from "@/lib/prompts";
 import { logError } from "@/lib/db";
 import { moduleByGradeNumber } from "@/lib/curriculum";
 import type { Grade, LessonPlan } from "@/types";
+import { rateLimitForUser, requireRole } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  const guard = await requireRole("teacher");
+  if (!guard.ok) return guard.response;
+  const rl = await rateLimitForUser(req, "ai:generate-lesson", {
+    capacity: 20,
+    refillPerMinute: 0.33,
+  });
+  if (!rl.ok) return rl.response;
   const body = (await req.json()) as {
     grade: Grade;
     module: number;

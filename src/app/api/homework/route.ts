@@ -8,10 +8,13 @@ import {
   type Homework,
 } from "@/lib/db";
 import { auth } from "@/auth";
+import { requireAuth, requireRole } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
 export async function GET(req: Request) {
+  const a = await requireAuth();
+  if (!a.ok) return a.response;
   const { searchParams } = new URL(req.url);
   const gradeRaw = searchParams.get("grade");
   const grade = gradeRaw ? Number(gradeRaw) : undefined;
@@ -29,6 +32,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const guard = await requireRole("teacher");
+  if (!guard.ok) return guard.response;
   const body = (await req.json()) as Partial<Homework>;
   if (!body.grade || !body.title || !body.resourceType) {
     return NextResponse.json({ error: "grade, title and resourceType are required" }, { status: 400 });
@@ -50,6 +55,8 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+  const guard = await requireRole("teacher");
+  if (!guard.ok) return guard.response;
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });

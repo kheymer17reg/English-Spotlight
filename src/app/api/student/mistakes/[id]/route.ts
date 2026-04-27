@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { reviewMistake } from "@/lib/mistakes-db";
 import { recordActivity } from "@/lib/activity-db";
 import { logError } from "@/lib/db";
+import { requireOwnStudentOrTeacher } from "@/lib/api-auth";
 
 interface ReviewBody {
   studentId: string;
@@ -18,6 +19,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     if (!body.studentId || typeof body.wasCorrect !== "boolean") {
       return NextResponse.json({ error: "studentId and wasCorrect required" }, { status: 400 });
     }
+    const own = await requireOwnStudentOrTeacher(body.studentId);
+    if (!own.ok) return own.response;
     const updated = reviewMistake(body.studentId, id, body.wasCorrect);
     if (!updated) {
       return NextResponse.json({ error: "mistake not found" }, { status: 404 });

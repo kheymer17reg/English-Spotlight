@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Document, HeadingLevel, Packer, Paragraph, TextRun } from "docx";
 import type { GeneratedExercise, GeneratedTest, LessonPlan, MethodicalLesson } from "@/types";
+import { requireRole } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
@@ -11,6 +12,8 @@ type Payload =
   | { kind: "methodical"; lesson: MethodicalLesson };
 
 export async function POST(req: Request) {
+  const guard = await requireRole("teacher");
+  if (!guard.ok) return guard.response;
   const payload = (await req.json()) as Payload;
   const doc = new Document({ sections: [{ children: buildChildren(payload) }] });
   const buf = await Packer.toBuffer(doc);

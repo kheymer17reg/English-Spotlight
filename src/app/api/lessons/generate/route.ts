@@ -4,11 +4,19 @@ import { methodicalLessonPrompt } from "@/lib/methodical-prompt";
 import { getMethodicalLesson, upsertMethodicalLesson } from "@/lib/methodical-db";
 import { logError } from "@/lib/db";
 import type { MethodicalLesson } from "@/types";
+import { rateLimitForUser, requireRole } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
+  const guard = await requireRole("teacher");
+  if (!guard.ok) return guard.response;
+  const rl = await rateLimitForUser(req, "lessons:generate", {
+    capacity: 10,
+    refillPerMinute: 0.2,
+  });
+  if (!rl.ok) return rl.response;
   const body = (await req.json()) as { id: string };
   const stub = getMethodicalLesson(body.id);
   if (!stub) return NextResponse.json({ error: "not_found" }, { status: 404 });

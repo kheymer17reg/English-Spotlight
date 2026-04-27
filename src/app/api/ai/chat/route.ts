@@ -4,10 +4,16 @@ import { buildRagContext } from "@/lib/rag";
 import { LUMOS_SYSTEM } from "@/lib/prompts";
 import { logError } from "@/lib/db";
 import type { ChatMessage } from "@/types";
+import { rateLimitForUser, requireAuth } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  const guard = await requireAuth();
+  if (!guard.ok) return guard.response;
+  // 60 messages / hour / user. Lumos chat is interactive — be a bit more generous.
+  const rl = await rateLimitForUser(req, "ai:chat", { capacity: 60, refillPerMinute: 1 });
+  if (!rl.ok) return rl.response;
   try {
     const body = (await req.json()) as { grade?: number; messages: ChatMessage[] };
     const msgs = body.messages || [];

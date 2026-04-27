@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { rateLimitForUser, requireAuth } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,6 +42,12 @@ function pickLang(explicit: string | undefined, text: string): "ru-RU" | "en-US"
 }
 
 export async function POST(req: Request) {
+  const guard = await requireAuth();
+  if (!guard.ok) return guard.response;
+  // 200 TTS calls / hour / user — generous (one click per word) but still
+  // bounded so a runaway script can't drain the SpeechKit budget.
+  const rl = await rateLimitForUser(req, "tts", { capacity: 200, refillPerMinute: 5 });
+  if (!rl.ok) return rl.response;
   try {
     const body = (await req.json()) as {
       text?: string;

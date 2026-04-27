@@ -27,6 +27,7 @@ function SignUpForm() {
   const [name, setName] = useState("");
   const [role, setRole] = useState<"student" | "teacher" | "parent">("student");
   const [grade, setGrade] = useState<number>(5);
+  const [teacherCode, setTeacherCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -44,6 +45,7 @@ function SignUpForm() {
           name,
           role,
           grade: role === "student" ? grade : undefined,
+          teacherCode: role === "teacher" ? teacherCode : undefined,
         }),
       });
       const data = (await res.json()) as { ok?: boolean; error?: string };
@@ -102,7 +104,7 @@ function SignUpForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={6}
+                minLength={8}
                 className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-primary"
               />
             </div>
@@ -129,6 +131,20 @@ function SignUpForm() {
                 </div>
               ) : null}
             </div>
+            {role === "teacher" ? (
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Код регистрации учителя
+                </label>
+                <input
+                  value={teacherCode}
+                  onChange={(e) => setTeacherCode(e.target.value)}
+                  required
+                  placeholder="Получите у администратора"
+                  className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-primary"
+                />
+              </div>
+            ) : null}
             {error ? <div className="text-sm text-destructive">{error}</div> : null}
             <Button type="submit" className="w-full gap-2" disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}

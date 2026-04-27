@@ -5,10 +5,21 @@ import { logError } from "@/lib/db";
 import { moduleByGradeNumber } from "@/lib/curriculum";
 import type { Difficulty, ExerciseItem, ExerciseType, GeneratedExercise, Grade } from "@/types";
 import { shuffle, uid } from "@/lib/utils";
+import { rateLimitForUser, requireAuth } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  const guard = await requireAuth();
+  if (!guard.ok) return guard.response;
+  // 30 generations / hour / user — enough for class prep, low enough to make
+  // a leaked session useless for cost-burn.
+  const rl = await rateLimitForUser(req, "ai:generate-exercise", {
+    capacity: 30,
+    refillPerMinute: 0.5,
+  });
+  if (!rl.ok) return rl.response;
+
   const body = (await req.json()) as {
     grade: Grade;
     module: number;

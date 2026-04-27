@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
+import { rateLimitForUser, requireAuth } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,6 +9,11 @@ export const dynamic = "force-dynamic";
 const VALID_KINDS = new Set(["idea", "bug", "thanks", "other"]);
 
 export async function POST(req: Request) {
+  const a = await requireAuth();
+  if (!a.ok) return a.response;
+  // Anti-spam: 10 messages / hour / user.
+  const rl = await rateLimitForUser(req, "feedback", { capacity: 10, refillPerMinute: 0.17 });
+  if (!rl.ok) return rl.response;
   try {
     const body = (await req.json()) as {
       kind?: string;

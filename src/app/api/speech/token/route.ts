@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
+import { rateLimitForUser, requireAuth } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
 // Issues a short-lived Azure Speech token for the browser SDK to use.
 // The subscription key stays on the server; the token lasts 10 minutes.
-export async function GET() {
+export async function GET(req: Request) {
+  const guard = await requireAuth();
+  if (!guard.ok) return guard.response;
+  // Tokens are valid 10 minutes — no need to issue them dozens of times.
+  const rl = await rateLimitForUser(req, "speech:token", { capacity: 30, refillPerMinute: 1 });
+  if (!rl.ok) return rl.response;
   const key = process.env.AZURE_SPEECH_KEY;
   const region = process.env.AZURE_SPEECH_REGION;
   if (!key || !region) {

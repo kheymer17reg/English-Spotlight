@@ -3,10 +3,15 @@ import { generateText } from "@/lib/llm";
 import { rolePlayPrompt } from "@/lib/prompts";
 import { logError } from "@/lib/db";
 import type { ChatMessage, Grade } from "@/types";
+import { rateLimitForUser, requireAuth } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  const guard = await requireAuth();
+  if (!guard.ok) return guard.response;
+  const rl = await rateLimitForUser(req, "ai:roleplay", { capacity: 80, refillPerMinute: 1.5 });
+  if (!rl.ok) return rl.response;
   try {
     const body = (await req.json()) as {
       grade: Grade;

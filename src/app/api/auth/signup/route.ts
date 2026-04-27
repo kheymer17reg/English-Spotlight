@@ -1,29 +1,61 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { findUserByEmail, upsertUser } from "@/lib/db";
+import { rateLimit } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  // Throttle signups per IP to slow down credential-stuffing / spam.
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "anon";
+  const rl = rateLimit(`signup:${ip}`, { capacity: 5, refillPerMinute: 1 });
+  if (!rl.ok) return rl.response;
+
   const body = (await req.json().catch(() => ({}))) as {
     email?: string;
     password?: string;
     name?: string;
     role?: "teacher" | "student" | "parent";
     grade?: number;
+    teacherCode?: string;
   };
   const email = (body.email ?? "").trim().toLowerCase();
   const password = body.password ?? "";
   const name = (body.name ?? "").trim() || null;
-  const role: "teacher" | "student" | "parent" =
-    body.role === "teacher" ? "teacher" : body.role === "parent" ? "parent" : "student";
+
+  // Role logic:
+  //   - teacher only if request includes the matching TEACHER_SIGNUP_CODE secret;
+  //   - parent allowed (parents must self-register to link to children);
+  //   - everything else falls back to student.
+  let role: "teacher" | "student" | "parent" = "student";
+  if (body.role === "teacher") {
+    const expected = process.env.TEACHER_SIGNUP_CODE;
+    if (!expected) {
+      return NextResponse.json(
+        { error: "Регистрация учителя выключена. Обратитесь к администратору." },
+        { status: 403 },
+      );
+    }
+    if (body.teacherCode !== expected) {
+      return NextResponse.json(
+        { error: "Неверный код регистрации учителя" },
+        { status: 403 },
+      );
+    }
+    role = "teacher";
+  } else if (body.role === "parent") {
+    role = "parent";
+  }
   const grade = typeof body.grade === "number" && body.grade > 0 ? body.grade : null;
 
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: "Некорректный email" }, { status: 400 });
   }
-  if (password.length < 6) {
-    return NextResponse.json({ error: "Пароль должен быть не короче 6 символов" }, { status: 400 });
+  if (password.length < 8) {
+    return NextResponse.json(
+      { error: "Пароль должен быть не короче 8 символов" },
+      { status: 400 },
+    );
   }
   if (findUserByEmail(email)) {
     return NextResponse.json({ error: "Пользователь с таким email уже есть" }, { status: 409 });

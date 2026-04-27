@@ -5,10 +5,18 @@ import { logError, saveAttempt } from "@/lib/db";
 import { moduleByGradeNumber } from "@/lib/curriculum";
 import { uid } from "@/lib/utils";
 import type { ExerciseItem, GeneratedTest, Grade } from "@/types";
+import { rateLimitForUser, requireAuth, requireOwnStudentOrTeacher, requireRole } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  const guard = await requireRole("teacher");
+  if (!guard.ok) return guard.response;
+  const rl = await rateLimitForUser(req, "ai:generate-test", {
+    capacity: 15,
+    refillPerMinute: 0.25,
+  });
+  if (!rl.ok) return rl.response;
   const body = (await req.json()) as {
     grade: Grade;
     format: GeneratedTest["format"];
@@ -89,12 +97,16 @@ function fallbackTest(body: {
 // Called from client after a test attempt to persist statistics
 export async function PUT(req: Request) {
   try {
+    const auth = await requireAuth();
+    if (!auth.ok) return auth.response;
     const body = (await req.json()) as {
       studentId: string;
       total: number;
       correct: number;
       module: number;
     };
+    const own = await requireOwnStudentOrTeacher(body.studentId);
+    if (!own.ok) return own.response;
     const score = Math.round((body.correct / Math.max(1, body.total)) * 100);
     saveAttempt({
       id: uid("att"),

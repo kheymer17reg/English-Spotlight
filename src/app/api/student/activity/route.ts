@@ -4,6 +4,7 @@ import { addMistake } from "@/lib/mistakes-db";
 import type { ActivityType, Grade, MistakeKind, MistakeSource } from "@/types";
 import { getDb, logError } from "@/lib/db";
 import { autoPostToAuthorClasses, recentSimilarPostExists } from "@/lib/feed-db";
+import { requireOwnStudentOrTeacher } from "@/lib/api-auth";
 
 const STREAK_MILESTONES = new Set([3, 5, 7, 14, 21, 30, 50, 100]);
 
@@ -50,6 +51,11 @@ export async function POST(req: Request) {
     if (!body?.studentId) {
       return NextResponse.json({ error: "studentId required" }, { status: 400 });
     }
+    // Block the trivial "spoof someone else's studentId" attack: students may
+    // only post activity for their own linked studentId; teachers can post on
+    // behalf of any student in their class (e.g. when grading homework).
+    const guard = await requireOwnStudentOrTeacher(body.studentId);
+    if (!guard.ok) return guard.response;
     if (!ACTIVITY_TYPES.includes(body.activityType)) {
       return NextResponse.json({ error: "invalid activityType" }, { status: 400 });
     }
