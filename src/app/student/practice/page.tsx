@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronRight, GraduationCap, Lightbulb, Loader2, PartyPopper, RefreshCw, Wand2, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,9 +40,13 @@ export default function PracticePage() {
   const [submitted, setSubmitted] = useState(false);
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
 
-  if (!student) return null;
+  const answeredCount = ex ? ex.items.filter((it) => answers[it.id] != null && answers[it.id] !== "").length : 0;
+  const totalCount = ex ? ex.items.length : 0;
+  const progressPct = totalCount > 0 ? Math.round((answeredCount / totalCount) * 100) : 0;
+  const allAnswered = totalCount > 0 && answeredCount === totalCount;
 
   const generate = async () => {
+    if (!student) return;
     setBusy(true);
     setError(null);
     setEx(null);
@@ -109,8 +113,28 @@ export default function PracticePage() {
 
   const reveal = (id: string) => setRevealed((r) => ({ ...r, [id]: true }));
 
+  // Enter from anywhere outside an input fires "Check" once all answers are given.
+  // Use a ref to avoid re-binding the listener every render.
+  const checkRef = useRef(check);
+  checkRef.current = check;
+  useEffect(() => {
+    if (!ex || submitted) return;
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
+      if (e.key === "Enter" && allAnswered) {
+        e.preventDefault();
+        checkRef.current();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [ex, submitted, allAnswered]);
+
+  if (!student) return null;
+
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="mx-auto max-w-4xl space-y-6 pb-32">
       <div className="flex items-start gap-3">
         <div className="grid h-11 w-11 flex-none place-items-center rounded-2xl bg-gradient-to-br from-primary to-accent text-white shadow-glow">
           <GraduationCap className="h-5 w-5" />
@@ -119,6 +143,9 @@ export default function PracticePage() {
           <h1 className="font-display text-3xl font-semibold">Тренировка</h1>
           <p className="text-muted-foreground">
             Lumos сгенерирует упражнения по текущему модулю — проверяй себя и лови XP.
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Подсказка: жми <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono">1</kbd>–<kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono">4</kbd> для вариантов, <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono">Enter</kbd> чтобы проверить.
           </p>
         </div>
       </div>
@@ -164,6 +191,38 @@ export default function PracticePage() {
         />
       ) : null}
 
+      {ex && !submitted ? (
+        <div className="sticky top-2 z-20 -mt-2 mb-2">
+          <div className="rounded-2xl border border-border bg-background/85 px-4 py-2.5 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background/70">
+            <div className="flex items-center gap-3">
+              <div className="text-xs font-medium text-muted-foreground">
+                {answeredCount} / {totalCount}
+              </div>
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                <div
+                  className={cn(
+                    "h-full rounded-full transition-all",
+                    progressPct >= 100
+                      ? "bg-gradient-to-r from-emerald-500 to-teal-500"
+                      : "bg-gradient-to-r from-primary to-accent",
+                  )}
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+              <Button
+                size="sm"
+                onClick={check}
+                disabled={!allAnswered}
+                className="gap-2"
+                title={allAnswered ? "Проверить ответы" : "Сначала ответь на все вопросы"}
+              >
+                Проверить <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {ex ? (
         <Card>
           <CardHeader>
@@ -185,6 +244,7 @@ export default function PracticePage() {
                 item={it}
                 value={answers[it.id]}
                 revealed={!!revealed[it.id] || submitted}
+                submitted={submitted}
                 onChange={(v) => setAnswers((a) => ({ ...a, [it.id]: v }))}
                 onReveal={() => reveal(it.id)}
               />
@@ -269,6 +329,7 @@ function ExerciseRow({
   item,
   value,
   revealed,
+  submitted,
   onChange,
   onReveal,
 }: {
@@ -276,24 +337,71 @@ function ExerciseRow({
   item: ExerciseItem;
   value: string | undefined;
   revealed: boolean;
+  submitted: boolean;
   onChange: (v: string) => void;
   onReveal: () => void;
 }) {
   const correct = isCorrect(item, value);
   const showFeedback = revealed;
+  const rowRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [shake, setShake] = useState(false);
+
+  // Number-key shortcut for multiple_choice / true_false (only first question with no answer yet),
+  // and Enter on text input to move on.
+  useEffect(() => {
+    if (submitted) return;
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
+      if (!rowRef.current) return;
+      const rect = rowRef.current.getBoundingClientRect();
+      const inView = rect.top < window.innerHeight * 0.6 && rect.bottom > window.innerHeight * 0.2;
+      if (!inView) return;
+      if (item.type === "multiple_choice" && item.options) {
+        const idx = Number(e.key) - 1;
+        if (idx >= 0 && idx < item.options.length) {
+          e.preventDefault();
+          onChange(item.options[idx]);
+        }
+      } else if (item.type === "true_false") {
+        if (e.key.toLowerCase() === "t") {
+          e.preventDefault();
+          onChange("True");
+        } else if (e.key.toLowerCase() === "f") {
+          e.preventDefault();
+          onChange("False");
+        }
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [item, onChange, submitted]);
+
+  // Trigger a small shake when an answer is revealed wrong.
+  useEffect(() => {
+    if (revealed && !correct && value) {
+      setShake(true);
+      const t = setTimeout(() => setShake(false), 450);
+      return () => clearTimeout(t);
+    }
+  }, [revealed, correct, value]);
+
   return (
     <div
+      ref={rowRef}
       className={cn(
-        "rounded-xl border bg-muted/30 p-4 transition-colors",
+        "rounded-xl border bg-muted/30 p-4 transition-colors sm:p-5",
         showFeedback && correct && "border-emerald-500/40 bg-emerald-500/5",
         showFeedback && !correct && value != null && value !== "" && "border-rose-500/40 bg-rose-500/5",
         !showFeedback && "border-border",
+        shake && "animate-wiggle",
       )}
     >
-      <div className="mb-3 flex items-start gap-2">
+      <div className="mb-4 flex items-start gap-3">
         <span
           className={cn(
-            "grid h-7 w-7 flex-none place-items-center rounded-full text-xs font-bold",
+            "grid h-9 w-9 flex-none place-items-center rounded-full text-sm font-bold",
             showFeedback && correct
               ? "bg-emerald-500 text-white"
               : showFeedback && value
@@ -301,53 +409,61 @@ function ExerciseRow({
                 : "bg-gradient-to-br from-primary to-accent text-white",
           )}
         >
-          {showFeedback && correct ? <Check className="h-3.5 w-3.5" /> : showFeedback && value ? <X className="h-3.5 w-3.5" /> : index}
+          {showFeedback && correct ? <Check className="h-4 w-4" /> : showFeedback && value ? <X className="h-4 w-4" /> : index}
         </span>
-        <div className="text-sm font-medium leading-relaxed">{item.prompt}</div>
+        <div className="text-base font-medium leading-relaxed">{item.prompt}</div>
       </div>
 
       {item.type === "multiple_choice" && item.options ? (
-        <div className="grid gap-2 sm:grid-cols-2">
-          {item.options.map((opt) => (
+        <div className="grid gap-2.5 sm:grid-cols-2">
+          {item.options.map((opt, i) => (
             <button
               key={opt}
               type="button"
               onClick={() => onChange(opt)}
               className={cn(
-                "rounded-lg border border-border bg-surface px-3 py-2 text-left text-sm transition-colors hover:bg-muted",
-                value === opt && !revealed && "border-primary ring-2 ring-primary/30",
-                revealed && opt === expectedString(item) && "border-success bg-success/10 text-success",
-                revealed && value === opt && opt !== expectedString(item) && "border-destructive bg-destructive/10 text-destructive",
+                "flex min-h-[52px] items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-left text-base transition-all hover:bg-muted hover:border-primary/40",
+                value === opt && !revealed && "border-primary ring-2 ring-primary/30 bg-primary/5",
+                revealed && opt === expectedString(item) && "border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+                revealed && value === opt && opt !== expectedString(item) && "border-rose-500 bg-rose-500/10 text-rose-700 dark:text-rose-300",
               )}
             >
-              {opt}
+              <kbd className="hidden h-7 w-7 flex-none items-center justify-center rounded-md border border-border bg-muted font-mono text-xs sm:inline-flex">
+                {i + 1}
+              </kbd>
+              <span className="flex-1">{opt}</span>
             </button>
           ))}
         </div>
       ) : item.type === "true_false" ? (
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           {["True", "False"].map((opt) => (
             <button
               key={opt}
               type="button"
               onClick={() => onChange(opt)}
               className={cn(
-                "rounded-lg border border-border px-4 py-2 text-sm",
-                value === opt && !revealed && "border-primary ring-2 ring-primary/30",
-                revealed && opt === expectedString(item) && "border-success bg-success/10 text-success",
+                "flex min-h-[52px] flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-surface px-6 py-3 text-base font-medium transition-all hover:bg-muted hover:border-primary/40 sm:flex-none",
+                value === opt && !revealed && "border-primary ring-2 ring-primary/30 bg-primary/5",
+                revealed && opt === expectedString(item) && "border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+                revealed && value === opt && opt !== expectedString(item) && "border-rose-500 bg-rose-500/10 text-rose-700 dark:text-rose-300",
               )}
             >
-              {opt}
+              {opt === "True" ? "✔ True" : "✘ False"}
+              <kbd className="hidden rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] sm:inline-flex">
+                {opt[0]}
+              </kbd>
             </button>
           ))}
         </div>
       ) : (
         <input
+          ref={inputRef}
           type="text"
           value={value ?? ""}
           onChange={(e) => onChange(e.target.value)}
           placeholder="Твой ответ…"
-          className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="min-h-[52px] w-full rounded-xl border border-border bg-surface px-4 py-3 text-base shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
       )}
 

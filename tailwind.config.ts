@@ -49,10 +49,23 @@ const config: Config = {
       keyframes: {
         "fade-in": { from: { opacity: "0", transform: "translateY(4px)" }, to: { opacity: "1", transform: "translateY(0)" } },
         shimmer: { "0%": { backgroundPosition: "-200% 0" }, "100%": { backgroundPosition: "200% 0" } },
+        wiggle: {
+          "0%, 100%": { transform: "translateX(0)" },
+          "20%": { transform: "translateX(-6px)" },
+          "40%": { transform: "translateX(6px)" },
+          "60%": { transform: "translateX(-4px)" },
+          "80%": { transform: "translateX(4px)" },
+        },
+        "pulse-soft": {
+          "0%, 100%": { boxShadow: "0 0 0 0 hsl(var(--primary) / 0)" },
+          "50%": { boxShadow: "0 0 0 8px hsl(var(--primary) / 0.15)" },
+        },
       },
       animation: {
         "fade-in": "fade-in 0.3s ease-out both",
         shimmer: "shimmer 2s linear infinite",
+        wiggle: "wiggle 0.45s ease-in-out",
+        "pulse-soft": "pulse-soft 1.4s ease-in-out infinite",
       },
     },
   },

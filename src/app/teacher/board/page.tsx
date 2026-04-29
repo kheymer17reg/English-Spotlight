@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { TldrawBoardHandle } from "./tldraw-board";
+import { BoardHelp } from "./board-help";
 
 // Tldraw must be client-only (it relies on `window`, IndexedDB, etc.).
 const TldrawBoard = dynamic(() => import("./tldraw-board"), {
@@ -133,6 +134,7 @@ export default function TeacherBoardPage() {
           <Button variant="outline" size="sm" onClick={exportPng} className="gap-2">
             <Download className="h-4 w-4" /> PNG
           </Button>
+          <BoardHelp />
         </div>
       </div>
 
