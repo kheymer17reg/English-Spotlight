@@ -128,13 +128,14 @@ const XP_PER_LEVEL = 200;
 export default function ProgressPage() {
   const router = useRouter();
   const student = useStore((s) => s.student);
+  const bootstrapped = useStore((s) => s.bootstrapped);
   const updateStudent = useStore((s) => s.updateStudent);
   const [report, setReport] = useState<StudentProgressReport | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (student === null) router.replace("/");
-  }, [student, router]);
+    if (bootstrapped && student === null) router.replace("/");
+  }, [student, bootstrapped, router]);
 
   useEffect(() => {
     if (!student) return;

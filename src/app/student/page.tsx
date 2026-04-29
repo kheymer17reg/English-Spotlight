@@ -62,11 +62,12 @@ const DAILY_TASKS: DailyTask[] = [
 export default function StudentHomePage() {
   const router = useRouter();
   const student = useStore((s) => s.student);
+  const bootstrapped = useStore((s) => s.bootstrapped);
   const [today, setToday] = useState<TodayResponse | null>(null);
 
   useEffect(() => {
-    if (student === null) router.replace("/");
-  }, [student, router]);
+    if (bootstrapped && student === null) router.replace("/");
+  }, [student, bootstrapped, router]);
 
   useEffect(() => {
     if (!student) return;

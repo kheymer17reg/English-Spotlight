@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { findUserByEmail, upsertUser } from "@/lib/db";
+import { findUserByEmail, upsertStudent, upsertUser } from "@/lib/db";
 import { rateLimit } from "@/lib/api-auth";
+import type { Grade, StudentRecord } from "@/types";
 
 export const runtime = "nodejs";
 
@@ -62,6 +63,26 @@ export async function POST(req: Request) {
   }
   const passwordHash = await bcrypt.hash(password, 10);
   const id = `u_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`;
+  // For students we provision a StudentRecord at signup so that all
+  // /student/* pages (which read from the StudentRecord-keyed store) have
+  // data to render immediately after first login. Without this the Zustand
+  // store stays empty and pages that gate on `!student` render blank.
+  let studentId: string | null = null;
+  if (role === "student") {
+    const stuId = `stu_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`;
+    const record: StudentRecord = {
+      id: stuId,
+      name: name ?? email.split("@")[0],
+      grade: (grade && grade >= 2 && grade <= 11 ? grade : 5) as Grade,
+      createdAt: new Date().toISOString(),
+      streak: 0,
+      xp: 0,
+      level: 1,
+      currentModule: 1,
+    };
+    upsertStudent(record);
+    studentId = stuId;
+  }
   upsertUser({
     id,
     email,
@@ -71,7 +92,7 @@ export async function POST(req: Request) {
     image: null,
     role,
     grade,
-    studentId: null,
+    studentId,
     provider: "credentials",
     providerAccountId: null,
     createdAt: new Date().toISOString(),

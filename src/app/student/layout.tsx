@@ -3,10 +3,12 @@ import { Topbar } from "@/components/layout/topbar";
 import { MobileTabBar } from "@/components/layout/mobile-nav";
 import { FeedbackWidget } from "@/components/feedback/feedback-widget";
 import { LumosFloater } from "@/components/chat/lumos-floater";
+import { StudentBootstrap } from "@/components/student/student-bootstrap";
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-dvh">
+      <StudentBootstrap />
       <StudentSidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar role="student" />

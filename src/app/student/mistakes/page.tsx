@@ -19,6 +19,7 @@ interface ApiResponse {
 export default function MistakesPage() {
   const router = useRouter();
   const student = useStore((s) => s.student);
+  const bootstrapped = useStore((s) => s.bootstrapped);
   const updateStudent = useStore((s) => s.updateStudent);
   const [data, setData] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -28,8 +29,8 @@ export default function MistakesPage() {
   const [feedback, setFeedback] = useState<null | "correct" | "wrong">(null);
 
   useEffect(() => {
-    if (student === null) router.replace("/");
-  }, [student, router]);
+    if (bootstrapped && student === null) router.replace("/");
+  }, [student, bootstrapped, router]);
 
   const load = useCallback(async () => {
     if (!student) return;
