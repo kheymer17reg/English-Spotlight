@@ -36,9 +36,15 @@ export default function TeacherLessonsLibrary() {
     setLoading(true);
     try {
       const res = await fetch("/api/lessons", { cache: "no-store" });
-      const data = (await res.json()) as { lessons: MethodicalLesson[]; stats: Stats };
-      setLessons(data.lessons);
-      setStats(data.stats);
+      const data = (await res.json().catch(() => ({}))) as Partial<{
+        lessons: MethodicalLesson[];
+        stats: Stats;
+      }>;
+      setLessons(Array.isArray(data.lessons) ? data.lessons : []);
+      setStats(data.stats ?? { total: 0, generated: 0, stub: 0, edited: 0 });
+    } catch {
+      setLessons([]);
+      setStats({ total: 0, generated: 0, stub: 0, edited: 0 });
     } finally {
       setLoading(false);
     }

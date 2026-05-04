@@ -25,8 +25,20 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     fetch("/api/stats")
-      .then((r) => r.json())
-      .then((d) => setStats(d))
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null)
+      .then((d: Stats | null) => {
+        // Normalise so the page never crashes on partial / missing data.
+        if (!d) {
+          setStats({ students: 0, attempts: 0, skillAccuracy: [] });
+          return;
+        }
+        setStats({
+          students: d.students ?? 0,
+          attempts: d.attempts ?? 0,
+          skillAccuracy: Array.isArray(d.skillAccuracy) ? d.skillAccuracy : [],
+        });
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -65,7 +77,7 @@ export default function AnalyticsPage() {
               <CardTitle>Навыки по всей школе</CardTitle>
               <CardDescription>Средняя точность за 30 дней</CardDescription>
             </div>
-            <Badge variant="primary">{loading ? "…" : `${stats?.skillAccuracy.length ?? 0} категорий`}</Badge>
+            <Badge variant="primary">{loading ? "…" : `${stats?.skillAccuracy?.length ?? 0} категорий`}</Badge>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">

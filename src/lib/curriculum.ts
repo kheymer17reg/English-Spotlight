@@ -819,6 +819,96 @@ export const CURRICULUM: CurriculumModule[] = [
       "hobby", "pastime", "passion", "enthusiast", "addicted",
     ],
   },
+
+  // Grade 5 · Modules 9–10 (full Spotlight syllabus)
+  {
+    id: "g5-m9",
+    grade: 5,
+    number: 9,
+    title: "Modern Living",
+    topics: ["Магазины", "Покупки", "Свободное время"],
+    grammar: ["Present Perfect", "Have / has been to"],
+    vocabulary: [
+      "shopping centre", "supermarket", "department store", "bakery", "butcher's",
+      "florist", "newsagent", "chemist", "boutique", "kiosk",
+      "receipt", "bargain", "discount", "voucher", "refund",
+      "trolley", "basket", "checkout", "cashier", "delivery",
+    ],
+  },
+  {
+    id: "g5-m10",
+    grade: 5,
+    number: 10,
+    title: "Holidays",
+    topics: ["Каникулы", "Путешествия", "Виды отдыха"],
+    grammar: ["Be going to", "Будущее планирование"],
+    vocabulary: [
+      "destination", "resort", "beach", "mountains", "countryside",
+      "package tour", "cruise", "safari", "adventure", "sightseeing",
+      "suitcase", "backpack", "passport", "visa", "boarding pass",
+      "souvenir", "postcard", "memory", "experience", "journey",
+    ],
+  },
+
+  // Grade 6 · Modules 9–10
+  {
+    id: "g6-m9",
+    grade: 6,
+    number: 9,
+    title: "Food & Refreshments",
+    topics: ["Еда", "Напитки", "Кафе и рестораны"],
+    grammar: ["Countable / uncountable nouns", "A few / a little / a lot of"],
+    vocabulary: [
+      "menu", "starter", "main course", "dessert", "side dish",
+      "appetizer", "soup", "salad", "sandwich", "snack",
+      "spicy", "salty", "sweet", "sour", "bitter",
+      "waiter", "waitress", "chef", "tip", "bill",
+    ],
+  },
+  {
+    id: "g6-m10",
+    grade: 6,
+    number: 10,
+    title: "Holiday Time",
+    topics: ["Отпуск", "Бронирование", "Активный отдых"],
+    grammar: ["Future plans (will / be going to)", "Time clauses"],
+    vocabulary: [
+      "booking", "reservation", "check-in", "check-out", "receptionist",
+      "single room", "double room", "suite", "balcony", "view",
+      "all-inclusive", "half-board", "self-catering", "currency", "exchange rate",
+      "guidebook", "map", "compass", "binoculars", "camera",
+    ],
+  },
+
+  // Grade 7 · Modules 9–10
+  {
+    id: "g7-m9",
+    grade: 7,
+    number: 9,
+    title: "Shopping Time",
+    topics: ["Шопинг", "Деньги", "Реклама"],
+    grammar: ["Present Perfect vs Past Simple", "Already / yet / just"],
+    vocabulary: [
+      "advertisement", "commercial", "brand", "logo", "slogan",
+      "consumer", "customer", "client", "supplier", "retailer",
+      "afford", "save", "spend", "borrow", "lend",
+      "expensive", "cheap", "affordable", "valuable", "priceless",
+    ],
+  },
+  {
+    id: "g7-m10",
+    grade: 7,
+    number: 10,
+    title: "Healthy Body, Healthy Mind",
+    topics: ["Здоровье", "Стресс", "Образ жизни"],
+    grammar: ["Reflexive pronouns", "Reported speech (introduction)"],
+    vocabulary: [
+      "headache", "toothache", "stomachache", "backache", "earache",
+      "cough", "sneeze", "fever", "rash", "injury",
+      "stress", "anxiety", "relaxation", "meditation", "balance",
+      "recover", "heal", "treat", "prescribe", "diagnose",
+    ],
+  },
 ];
 
 export function modulesByGrade(grade: Grade): CurriculumModule[] {
