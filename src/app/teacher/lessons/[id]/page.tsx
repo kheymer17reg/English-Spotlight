@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LessonView } from "@/components/lessons/lesson-view";
+import { TextbookRefs } from "@/components/textbook/textbook-refs";
 import type { MethodicalLesson } from "@/types";
 
 export default function TeacherLessonDetail({ params }: { params: { id: string } }) {
@@ -126,6 +127,8 @@ export default function TeacherLessonDetail({ params }: { params: { id: string }
           </Button>
         </div>
       </div>
+
+      <TextbookRefs grade={lesson.grade} moduleNumber={lesson.moduleNumber} />
 
       {lesson.status === "stub" ? (
         <Card>

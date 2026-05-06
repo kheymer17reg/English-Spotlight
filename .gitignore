@@ -55,3 +55,8 @@ test-plan*.md
 test-report*.md
 scripts/out/
 
+# Textbook PDFs are copyrighted (Просвещение / Express Publishing).
+# The repo ships a per-grade README with file names; teachers drop their own
+# legitimate PDF copies into these folders on their own machine.
+public/textbooks/**/*.pdf
+

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  BookOpen,
   BookOpenCheck,
   Camera,
   ClipboardCheck,
@@ -39,6 +40,7 @@ export const teacherNavItems: { href: string; label: string; icon: typeof Home; 
   { href: "/teacher/quiz", label: "Live-квиз", icon: Radio, badge: "NEW" },
   { href: "/teacher/tests", label: "Тесты", icon: ClipboardCheck },
   { href: "/teacher/lessons", label: "Планы уроков", icon: FileText },
+  { href: "/teacher/textbook", label: "Учебники", icon: BookOpen, badge: "NEW" },
   { href: "/teacher/resources", label: "Библиотека", icon: Compass, badge: "NEW" },
   { href: "/teacher/students", label: "Ученики", icon: Users },
   { href: "/teacher/analytics", label: "Аналитика", icon: BarChart3 },

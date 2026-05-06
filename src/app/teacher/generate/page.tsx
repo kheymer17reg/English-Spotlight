@@ -18,6 +18,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { TextbookRefs } from "@/components/textbook/textbook-refs";
 import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty";
@@ -175,6 +176,10 @@ export default function TeacherGeneratePage() {
                 className="cursor-pointer"
               />
             </Field>
+          </div>
+
+          <div className="border-t border-border pt-4">
+            <TextbookRefs grade={grade} moduleNumber={moduleNum} variant="inline" />
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">

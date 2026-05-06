@@ -1,4 +1,5 @@
 import type { MethodicalLesson } from "@/types";
+import { moduleRefs } from "@/lib/textbook";
 
 // FGOS 2022-compliant methodical lesson generator prompt.
 // Target: fill the "stub" with full technological map, objectives by category, stages with teacher script + student activity + УУД.
@@ -34,6 +35,33 @@ export function methodicalLessonPrompt(stub: MethodicalLesson): {
       "Progress Check: самопроверка по всем разделам модуля (vocabulary quiz, grammar gap-fill, short reading, speaking task), рефлексия What I can now do, заполнение языкового портфолио.",
   };
 
+  // Pull the official Spotlight page ranges and key workbook exercises if we
+  // have them indexed for this grade — gives the LLM real anchor points so it
+  // doesn't invent fake page numbers.
+  const refs = moduleRefs(stub.grade, stub.moduleNumber);
+  const sb = refs?.studentBook;
+  const wb = refs?.workbook;
+  const wbHotspots =
+    refs?.workbookExercises && refs.workbookExercises.length > 0
+      ? refs.workbookExercises
+          .map((e) => `   – тетрадь стр. ${e.page} упр. ${e.exercise} — ${e.topic}`)
+          .join("\n")
+      : null;
+  const textbookBlock = refs
+    ? `
+ОПОРНЫЕ СТРАНИЦЫ ОФИЦИАЛЬНОГО УМК (используй ИХ, а не выдумывай):
+${sb ? `• Учебник (Student's Book${sb.book === "part2" ? ", ч.2" : ", ч.1"}): стр. ${sb.from}–${sb.to}` : ""}
+${wb ? `• Рабочая тетрадь (Workbook): стр. ${wb.from}–${wb.to}` : ""}
+${
+  wbHotspots
+    ? `• Ключевые упражнения тетради к этому модулю:\n${wbHotspots}`
+    : ""
+}
+
+В этапах урока обязательно ссылайся на КОНКРЕТНЫЕ страницы и номера упражнений из этих диапазонов (например: «Учебник стр. 28, упр. 1: послушать и повторить», «Тетрадь стр. 14, упр. 2: записать в тетради»). Не используй выдуманные номера страниц.
+`
+    : "";
+
   const user = `Сгенерируй полную методическую разработку урока (технологическую карту) для УМК Spotlight.
 
 МЕТАДАННЫЕ УРОКА:
@@ -47,6 +75,7 @@ export function methodicalLessonPrompt(stub: MethodicalLesson): {
 • Активная лексика модуля: ${stub.vocabulary.join(", ")}
 • Грамматика модуля: ${stub.grammar.join(", ")}
 • Фокус урока: ${focusByKind[stub.kind]}
+${textbookBlock}
 
 СТРОГО ВЕРНИ JSON ТАКОЙ СТРУКТУРЫ (без лишних полей, без markdown):
 {
