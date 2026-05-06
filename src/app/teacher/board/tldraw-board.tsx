@@ -81,8 +81,14 @@ const TldrawBoard = forwardRef<TldrawBoardHandle, { className?: string }>(functi
     },
   }));
 
+  // Tldraw fills its nearest positioned ancestor with `position: absolute` on
+  // its own root, so the wrapper must be a positioning context with explicit
+  // size. Earlier we set `style={{ position: "relative" }}` here, which
+  // collapsed the parent's `absolute inset-0` className back to relative
+  // flow → 0×0 → blank canvas. Use `position: absolute` + `inset: 0` instead
+  // so the wrapper actually fills the Card.
   return (
-    <div className={className} style={{ position: "relative" }}>
+    <div className={className} style={{ position: "absolute", inset: 0 }}>
       <Tldraw
         persistenceKey="spotlight-teacher-board"
         onMount={(editor) => {
