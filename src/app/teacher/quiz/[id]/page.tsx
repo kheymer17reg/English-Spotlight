@@ -5,8 +5,9 @@
  * players, current question + answer distribution, leaderboard, manual
  * "Next question" / "End" controls. Live updates via SSE.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import QRCode from "qrcode";
 import { ChevronRight, Loader2, Play, Square, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,34 @@ export default function TeacherQuizHostPage() {
   const [state, setState] = useState<HostState | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+
+  // URL students will land on (with PIN pre-filled). Falls back to relative
+  // path if window is not yet available.
+  const joinUrl = useMemo(() => {
+    if (!state?.session.pin) return null;
+    if (typeof window === "undefined") return `/student/quiz?pin=${state.session.pin}`;
+    return `${window.location.origin}/student/quiz?pin=${state.session.pin}`;
+  }, [state?.session.pin]);
+
+  // Generate QR for the join URL whenever the PIN changes.
+  useEffect(() => {
+    if (!joinUrl) {
+      setQrDataUrl(null);
+      return;
+    }
+    let cancelled = false;
+    QRCode.toDataURL(joinUrl, { width: 240, margin: 1, errorCorrectionLevel: "M" })
+      .then((url) => {
+        if (!cancelled) setQrDataUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setQrDataUrl(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [joinUrl]);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -140,26 +169,47 @@ export default function TeacherQuizHostPage() {
 
       {isLobby ? (
         <Card className="overflow-hidden border-primary/20">
-          <CardContent className="space-y-3 p-6 text-center">
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">Покажи код классу</div>
-            <div className="font-display text-7xl font-bold tracking-[0.2em] text-primary md:text-8xl">
-              {session.pin}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Открыть на телефоне: <span className="font-medium">/student/quiz</span> → ввести PIN
-            </div>
-            <div className="pt-2 text-sm">
-              Подключилось: <span className="font-semibold">{players.length}</span>
-            </div>
-            {players.length > 0 ? (
-              <div className="flex flex-wrap justify-center gap-1.5 pt-1">
-                {players.map((p) => (
-                  <Badge key={p.userId} variant="outline" className="text-xs">{p.name}</Badge>
-                ))}
+          <CardContent className="p-6">
+            <div className="grid items-center gap-6 md:grid-cols-[1fr_auto]">
+              <div className="space-y-3 text-center md:text-left">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">Покажи код классу</div>
+                <div className="font-display text-7xl font-bold tracking-[0.2em] text-primary md:text-8xl">
+                  {session.pin}
+                </div>
+                <div className="space-y-1 text-sm text-muted-foreground">
+                  <div>
+                    Способ 1 · вручную: открыть{" "}
+                    <span className="font-medium text-foreground">/student/quiz</span> → ввести PIN
+                  </div>
+                  <div>Способ 2 · отсканировать QR справа — попадёт сразу с заполненным PIN</div>
+                </div>
+                <div className="pt-2 text-sm">
+                  Подключилось: <span className="font-semibold">{players.length}</span>
+                </div>
+                {players.length > 0 ? (
+                  <div className="flex flex-wrap justify-center gap-1.5 pt-1 md:justify-start">
+                    {players.map((p) => (
+                      <Badge key={p.userId} variant="outline" className="text-xs">{p.name}</Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-xs text-muted-foreground">Ждём учеников…</div>
+                )}
               </div>
-            ) : (
-              <div className="text-xs text-muted-foreground">Ждём учеников…</div>
-            )}
+              {qrDataUrl ? (
+                <div className="flex flex-col items-center gap-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={qrDataUrl}
+                    alt={`QR-код для входа на квиз с PIN ${session.pin}`}
+                    width={240}
+                    height={240}
+                    className="rounded-lg border border-border bg-white p-2 shadow-soft"
+                  />
+                  <div className="text-xs text-muted-foreground">Сканируй камерой телефона</div>
+                </div>
+              ) : null}
+            </div>
           </CardContent>
         </Card>
       ) : null}

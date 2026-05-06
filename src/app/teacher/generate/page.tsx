@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { ExerciseItem } from "@/types";
 import {
   CheckCircle2,
   Eye,
@@ -245,6 +246,7 @@ export default function TeacherGeneratePage() {
             <ol className="space-y-3">
               {ex.items.map((it, i) => {
                 const answer = Array.isArray(it.answer) ? it.answer.join(" — ") : String(it.answer);
+                const isMatch = it.type === "match_pairs";
                 return (
                   <li
                     key={it.id}
@@ -256,12 +258,14 @@ export default function TeacherGeneratePage() {
                       </span>
                       <div className="flex-1 space-y-2">
                         <p className="text-base leading-relaxed">{it.prompt}</p>
-                        {it.options ? (
+                        {isMatch ? (
+                          <MatchPairsView item={it} showAnswers={showAnswers} />
+                        ) : it.options ? (
                           <ul className="grid gap-1.5 text-sm sm:grid-cols-2">
                             {it.options.map((o, j) => {
                               const isCorrect = showAnswers && (
                                 Array.isArray(it.answer)
-                                  ? it.answer.includes(o)
+                                  ? (it.answer as (string | string[])[]).includes(o)
                                   : it.answer === o
                               );
                               return (
@@ -282,7 +286,7 @@ export default function TeacherGeneratePage() {
                             })}
                           </ul>
                         ) : null}
-                        {showAnswers ? (
+                        {showAnswers && !isMatch ? (
                           <div className="space-y-1.5">
                             <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-sm">
                               <span className="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
@@ -299,9 +303,9 @@ export default function TeacherGeneratePage() {
                               <div className="text-xs text-muted-foreground">{it.explanation}</div>
                             ) : null}
                           </div>
-                        ) : (
+                        ) : !isMatch ? (
                           <div className="mt-1 h-8 rounded-lg border border-dashed border-border print:h-12" aria-label="Место для ответа" />
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   </li>
@@ -328,12 +332,137 @@ function exerciseToText(ex: GeneratedExercise): string {
   let out = `${ex.title}\n${ex.grade} класс · Модуль ${ex.module} · ${ex.type}\n\n`;
   ex.items.forEach((it, i) => {
     out += `${i + 1}. ${it.prompt}\n`;
-    if (it.options) {
+    if (it.type === "match_pairs") {
+      const pairs = extractPairs(it);
+      const shuffled = stableShuffle(pairs.map((p) => p[1]), `${ex.title}-${i}`);
+      pairs.forEach(([en], j) => {
+        out += `   ${String.fromCharCode(97 + j)}) ${en}    ${j + 1}) ${shuffled[j]}\n`;
+      });
+      const key = pairs
+        .map(([, ru], j) => `${String.fromCharCode(97 + j)}-${shuffled.indexOf(ru) + 1}`)
+        .join(", ");
+      out += `   Ответ: ${key}\n`;
+    } else if (it.options) {
       out += it.options.map((o, j) => `   ${String.fromCharCode(97 + j)}) ${o}`).join("\n") + "\n";
+      out += `   Ответ: ${Array.isArray(it.answer) ? it.answer.join(" — ") : it.answer}\n`;
+    } else {
+      out += `   Ответ: ${Array.isArray(it.answer) ? it.answer.join(" — ") : it.answer}\n`;
     }
-    out += `   Ответ: ${Array.isArray(it.answer) ? it.answer.join(" — ") : it.answer}\n`;
     if (it.explanation) out += `   (${it.explanation})\n`;
     out += "\n";
   });
   return out;
+}
+
+/**
+ * Extract `[english, russian]` pairs from a match_pairs item, regardless of
+ * whether the API returned `answer` as `[[en, ru], …]` or as a flat array
+ * parallel to `options`.
+ */
+function extractPairs(it: ExerciseItem): [string, string][] {
+  const opts = it.options ?? [];
+  const ans = it.answer;
+  if (Array.isArray(ans) && ans.length > 0 && Array.isArray((ans as unknown[])[0])) {
+    return (ans as unknown as string[][]).map(
+      ([en, ru]) => [String(en ?? ""), String(ru ?? "")] as [string, string],
+    );
+  }
+  if (Array.isArray(ans) && ans.length === opts.length) {
+    return opts.map((en, i) => [en, String(ans[i] ?? "")] as [string, string]);
+  }
+  return opts.map((en) => [en, ""] as [string, string]);
+}
+
+/**
+ * Deterministic shuffle keyed by the exercise title + index, so the right
+ * column has a stable order on every render (no hydration mismatches and the
+ * answer key stays valid across re-renders).
+ */
+function stableShuffle<T>(arr: T[], seedKey: string): T[] {
+  let h = 0;
+  for (let i = 0; i < seedKey.length; i++) h = (h * 31 + seedKey.charCodeAt(i)) >>> 0;
+  const out = [...arr];
+  for (let i = out.length - 1; i > 0; i--) {
+    h = (h * 9301 + 49297) >>> 0;
+    const j = h % (i + 1);
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+function MatchPairsView({ item, showAnswers }: { item: ExerciseItem; showAnswers: boolean }) {
+  // Pairs and their shuffled right column are memoised by the *content* of the
+  // item, so layout stays put across re-renders but regenerates if the user
+  // generates a new exercise.
+  const pairs = useMemo(() => extractPairs(item), [item]);
+  const seed = useMemo(() => `${item.id}-${item.prompt}-${pairs.length}`, [item.id, item.prompt, pairs.length]);
+  const shuffledRu = useMemo(() => stableShuffle(pairs.map((p) => p[1]), seed), [pairs, seed]);
+
+  if (pairs.length === 0) return null;
+
+  // For each English row, the answer is the 1-based position of its translation
+  // in the shuffled right column.
+  const answerKey = pairs.map(([, ru], i) => ({
+    letter: String.fromCharCode(97 + i),
+    number: shuffledRu.indexOf(ru) + 1,
+    en: pairs[i][0],
+    ru,
+  }));
+
+  return (
+    <div className="space-y-3">
+      <div className="grid gap-2 text-sm sm:grid-cols-2 print:gap-1">
+        <ul className="space-y-1.5">
+          {pairs.map(([en], i) => (
+            <li
+              key={`l-${i}`}
+              className={cn(
+                "flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2",
+                showAnswers && "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200 print:bg-transparent print:text-foreground",
+              )}
+            >
+              <span className="font-mono text-xs font-semibold text-muted-foreground">
+                {String.fromCharCode(97 + i)})
+              </span>
+              <span className="flex-1 font-medium">{en}</span>
+              {showAnswers ? (
+                <span className="font-mono text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                  → {answerKey[i].number}
+                </span>
+              ) : (
+                <span aria-hidden className="text-muted-foreground/60">—</span>
+              )}
+            </li>
+          ))}
+        </ul>
+        <ul className="space-y-1.5">
+          {shuffledRu.map((ru, i) => (
+            <li
+              key={`r-${i}`}
+              className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2"
+            >
+              <span className="font-mono text-xs font-semibold text-muted-foreground">
+                {i + 1})
+              </span>
+              <span className="flex-1">{ru}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      {showAnswers ? (
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-sm">
+          <span className="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+            Ответ:
+          </span>{" "}
+          <span className="font-mono font-medium text-foreground">
+            {answerKey.map((k) => `${k.letter}-${k.number}`).join(", ")}
+          </span>
+        </div>
+      ) : (
+        <div className="rounded-lg border border-dashed border-border px-3 py-2 text-xs text-muted-foreground print:py-3">
+          Запиши пары: a-?, b-?, c-? …
+        </div>
+      )}
+    </div>
+  );
 }

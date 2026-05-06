@@ -3,6 +3,7 @@ import { generateText, extractJson } from "@/lib/llm";
 import { exercisePrompt } from "@/lib/prompts";
 import { logError } from "@/lib/db";
 import { moduleByGradeNumber } from "@/lib/curriculum";
+import { translationFor } from "@/lib/vocabulary";
 import type { Difficulty, ExerciseItem, ExerciseType, GeneratedExercise, Grade } from "@/types";
 import { shuffle, uid } from "@/lib/utils";
 import { rateLimitForUser, requireAuth } from "@/lib/api-auth";
@@ -50,7 +51,7 @@ export async function POST(req: Request) {
       module: body.module,
       type: body.type,
       difficulty: body.difficulty,
-      items: parsed.items.map((it, i) => ({ ...it, id: it.id || String(i + 1) })),
+      items: parsed.items.map((it, i) => normalizeItem({ ...it, id: it.id || String(i + 1) })),
       createdAt: new Date().toISOString(),
     };
     return NextResponse.json({ exercise });
@@ -95,12 +96,18 @@ function fallbackExercise(body: {
         answer: truth ? "True" : "False",
       });
     } else if (body.type === "match_pairs") {
+      const pickCount = Math.max(4, Math.min(8, count));
+      const pool = words
+        .map((w) => ({ w, meta: translationFor(w) }))
+        .filter((x): x is { w: string; meta: NonNullable<ReturnType<typeof translationFor>> } => !!x.meta)
+        .slice(0, pickCount);
+      const pairs: string[][] = pool.map(({ w, meta }) => [w, meta.translation]);
       items.push({
         id: uid("q"),
         type: "match_pairs",
-        prompt: "Match the words with translations.",
-        options: words.slice(0, 4),
-        answer: words.slice(0, 4),
+        prompt: "Соедини слова с переводом.",
+        options: pairs.map(([en]) => en),
+        answer: pairs,
       });
       break;
     } else {
@@ -121,7 +128,65 @@ function fallbackExercise(body: {
     module: body.module,
     type: body.type,
     difficulty: body.difficulty,
-    items,
+    items: items.map((it) => normalizeItem(it)),
     createdAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Normalize an item before sending it to the client. The main case is
+ * `match_pairs`: the LLM is inconsistent about the answer shape (sometimes
+ * `[[en, ru], ...]`, sometimes flat `[ru1, ru2, ...]`, sometimes `["en — ru", …]`).
+ * We coerce everything into pairs so the renderer can lay out two columns
+ * deterministically.
+ */
+function normalizeItem(it: ExerciseItem): ExerciseItem {
+  if (it.type !== "match_pairs") return it;
+
+  const englishOptions = Array.isArray(it.options) ? it.options.filter(Boolean) : [];
+  const rawAnswer = it.answer;
+
+  // Already pairs?
+  if (
+    Array.isArray(rawAnswer) &&
+    rawAnswer.length > 0 &&
+    Array.isArray(rawAnswer[0]) &&
+    (rawAnswer[0] as unknown as string[]).length >= 2
+  ) {
+    const pairs: string[][] = (rawAnswer as unknown as string[][]).map(
+      ([en, ru]) => [String(en), String(ru)],
+    );
+    return {
+      ...it,
+      options: pairs.map((p) => p[0]),
+      answer: pairs,
+    };
+  }
+
+  // Flat array — try to pair with options 1:1.
+  if (Array.isArray(rawAnswer) && englishOptions.length === rawAnswer.length) {
+    // Some LLMs output "en — ru" strings; split if present.
+    const pairs: string[][] = englishOptions.map((en, i) => {
+      const a = String((rawAnswer as string[])[i]);
+      const m = a.match(/^([^—-]+)\s*[—-]\s*(.+)$/);
+      const ru = m ? m[2].trim() : a.trim();
+      return [en, ru];
+    });
+    return {
+      ...it,
+      options: pairs.map((p) => p[0]),
+      answer: pairs,
+    };
+  }
+
+  // Fall back to dictionary lookup so we always have *some* second column.
+  const fallback: string[][] = englishOptions.map((en) => {
+    const meta = translationFor(en);
+    return [en, meta?.translation ?? "—"];
+  });
+  return {
+    ...it,
+    options: fallback.map((p) => p[0]),
+    answer: fallback,
   };
 }

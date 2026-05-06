@@ -189,7 +189,7 @@ export default function TeacherTestsPage() {
                                   {it.options.map((o, j) => {
                                     const isCorrect = showAnswers && (
                                       Array.isArray(it.answer)
-                                        ? it.answer.includes(o)
+                                        ? (it.answer as (string | string[])[]).includes(o)
                                         : it.answer === o
                                     );
                                     return (

@@ -1122,6 +1122,17 @@ const TRANSLATIONS: Record<
   diagnose: { translation: "ставить диагноз", pos: "гл.", example: "Hard to diagnose." },
 };
 
+/**
+ * Look up the Russian translation (and metadata) for a single English word.
+ * Used by the exercise / test generators when the LLM is unavailable, so
+ * fallback content has real translations instead of placeholders.
+ */
+export function translationFor(word: string):
+  | { translation: string; pos: string; example: string; tr?: string }
+  | null {
+  return TRANSLATIONS[word] ?? null;
+}
+
 export function vocabularyByGrade(grade: Grade): VocabWord[] {
   const mods = CURRICULUM.filter((m) => m.grade === grade);
   const words: VocabWord[] = [];

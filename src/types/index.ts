@@ -68,7 +68,13 @@ export interface ExerciseItem {
   type: ExerciseType;
   prompt: string;
   options?: string[];
-  answer: string | string[];
+  /**
+   * Accepted shapes:
+   * - `string`         — single correct answer (e.g. fill_blank, true_false)
+   * - `string[]`       — multiple equally-correct answers
+   * - `[string, string][]` — pairs `[english, russian]` for `match_pairs`
+   */
+  answer: string | string[] | string[][];
   hint?: string;
   explanation?: string;
 }
