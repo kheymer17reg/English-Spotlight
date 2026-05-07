@@ -1,0 +1,181 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-display: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+    --radius: 14px;
+
+    --background: 210 40% 98%;
+    --foreground: 220 26% 14%;
+
+    --surface: 0 0% 100%;
+    --surface-foreground: 220 26% 14%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 26% 14%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 26% 14%;
+
+    --primary: 173 80% 36%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220 26% 14%;
+
+    --accent: 265 83% 62%;
+    --accent-foreground: 0 0% 100%;
+
+    --success: 152 61% 41%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 37 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;
+    --ring: 173 80% 36%;
+  }
+
+  .dark {
+    --background: 222 31% 8%;
+    --foreground: 210 20% 96%;
+
+    --surface: 222 24% 12%;
+    --surface-foreground: 210 20% 96%;
+
+    --muted: 222 16% 17%;
+    --muted-foreground: 220 14% 74%;
+
+    --card: 222 22% 11%;
+    --card-foreground: 210 20% 96%;
+
+    --popover: 222 22% 11%;
+    --popover-foreground: 210 20% 96%;
+
+    --primary: 173 72% 50%;
+    --primary-foreground: 222 31% 8%;
+
+    --secondary: 222 16% 17%;
+    --secondary-foreground: 210 20% 96%;
+
+    --accent: 265 82% 70%;
+    --accent-foreground: 222 31% 8%;
+
+    --success: 152 52% 52%;
+    --success-foreground: 222 31% 8%;
+
+    --warning: 37 90% 58%;
+    --warning-foreground: 222 31% 8%;
+
+    --destructive: 0 70% 60%;
+    --destructive-foreground: 222 31% 8%;
+
+    --border: 222 16% 26%;
+    --ring: 173 72% 50%;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+  html,
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-family: var(--font-sans);
+  }
+  body {
+    min-height: 100dvh;
+  }
+  h1, h2, h3, h4, h5 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+  ::selection {
+    background: hsl(var(--primary) / 0.2);
+  }
+}
+
+@layer utilities {
+  .grid-bg {
+    background-size: 40px 40px;
+    background-image: theme("backgroundImage.grid-light");
+  }
+  .dark .grid-bg {
+    background-image: theme("backgroundImage.grid-dark");
+  }
+  .gradient-text {
+    background: linear-gradient(120deg, hsl(var(--primary)), hsl(var(--accent)));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .glass {
+    background: hsl(var(--surface) / 0.72);
+    backdrop-filter: saturate(180%) blur(14px);
+    -webkit-backdrop-filter: saturate(180%) blur(14px);
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+  /* Subtle animated glow for "unlocked" badges and podium tiles */
+  .glow-soft {
+    box-shadow:
+      0 0 0 1px hsl(var(--primary) / 0.35),
+      0 8px 32px -12px hsl(var(--primary) / 0.4);
+  }
+  .glow-amber {
+    box-shadow:
+      0 0 0 1px rgb(245 158 11 / 0.45),
+      0 12px 40px -12px rgb(245 158 11 / 0.45);
+  }
+  .glow-silver {
+    box-shadow:
+      0 0 0 1px rgb(148 163 184 / 0.45),
+      0 10px 32px -12px rgb(148 163 184 / 0.45);
+  }
+  .glow-bronze {
+    box-shadow:
+      0 0 0 1px rgb(234 88 12 / 0.45),
+      0 10px 32px -12px rgb(234 88 12 / 0.45);
+  }
+  /* Streak flame pulse */
+  @keyframes flame-pulse {
+    0%, 100% { transform: scale(1); filter: drop-shadow(0 0 6px rgb(249 115 22 / 0.45)); }
+    50% { transform: scale(1.06); filter: drop-shadow(0 0 10px rgb(249 115 22 / 0.75)); }
+  }
+  .flame-pulse {
+    animation: flame-pulse 1.6s ease-in-out infinite;
+  }
+  /* A ring gauge using conic-gradient; --progress from 0 to 100 */
+  .ring-gauge {
+    --progress: 0;
+    background:
+      conic-gradient(
+        hsl(var(--primary)) calc(var(--progress) * 1%),
+        hsl(var(--muted)) calc(var(--progress) * 1%)
+      );
+  }
+  /* Wrapping bar with gradient fill (0-100%) using --v */
+  .skill-bar-fill {
+    --v: 0;
+    width: calc(var(--v) * 1%);
+  }
+}

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#ec4899"/>
+    </linearGradient>
+    <linearGradient id="beam" x1="26" y1="12" x2="14" y2="28" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <!-- Full bleed background; safe zone is 80% (20-80%) -->
+  <rect width="40" height="40" fill="url(#bg)"/>
+  <!-- Inner logo scaled down into safe zone (≈ 50% central area) -->
+  <g transform="translate(10 10) scale(0.5)">
+    <path d="M28 7.5 L33 9.2 L22.5 32 L7 27.5 Z" fill="url(#beam)"/>
+    <circle cx="30.5" cy="8" r="3.4" fill="#ffffff"/>
+    <circle cx="30.5" cy="8" r="1.4" fill="#6366f1"/>
+    <path d="M6 26.5 C 11 24.5, 15.5 24.5, 19.5 27 L 19.5 33.2 C 15.5 30.7, 11 30.7, 6 32.7 Z" fill="#ffffff" opacity="0.92"/>
+    <path d="M34 26.5 C 29 24.5, 24.5 24.5, 20.5 27 L 20.5 33.2 C 24.5 30.7, 29 30.7, 34 32.7 Z" fill="#ffffff"/>
+    <path d="M23.5 28.7 L 30.5 28.7" stroke="#6366f1" stroke-width="1.1" stroke-linecap="round"/>
+    <path d="M23.5 30.8 L 28.5 30.8" stroke="#6366f1" stroke-width="1.1" stroke-linecap="round" opacity="0.6"/>
+  </g>
+</svg>

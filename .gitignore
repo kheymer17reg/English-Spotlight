@@ -1,0 +1,62 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+coverage/
+
+# next.js
+.next/
+out/
+
+# production
+build/
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files
+.env
+.env*.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# local data
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# codex logs
+.codex-dev.err.log
+.codex-dev.out.log
+API*key*.txt
+
+# test artifacts
+test-plan*.md
+test-report*.md
+scripts/out/
+
+# Textbook PDFs are copyrighted (Просвещение / Express Publishing).
+# The repo ships a per-grade README with file names; teachers drop their own
+# legitimate PDF copies into these folders on their own machine.
+public/textbooks/**/*.pdf
+
